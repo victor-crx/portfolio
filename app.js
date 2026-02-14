@@ -400,7 +400,10 @@
   let projects = [];
   let filtered = [];
   let currentModalIndex = -1;
+  let currentMediaIndex = 0;
   let lastFocused;
+  const MODAL_HISTORY_KEY = 'portfolioModal';
+  let suppressNextPopstateClose = false;
 
   function setModalOpenState(isOpen) {
     if (!modal) return;
@@ -411,6 +414,55 @@
   }
 
   if (modal) setModalOpenState(false);
+
+
+  function resolveAssetPath(path) {
+    if (typeof path !== 'string') return path;
+    if (path.startsWith('./')) return `/${path.slice(2)}`;
+    return path;
+  }
+
+  function getModalImages(item) {
+    if (Array.isArray(item.images) && item.images.length) {
+      return item.images.filter((src) => typeof src === 'string' && src.trim()).map((src) => resolveAssetPath(src.trim()));
+    }
+    return [buildPlaceholder(item)];
+  }
+
+  function renderModalGallery(item, mediaIndex = 0) {
+    if (!modalHeroMedia) return;
+    const galleryImages = getModalImages(item);
+    const safeIndex = Math.min(Math.max(mediaIndex, 0), galleryImages.length - 1);
+    currentMediaIndex = safeIndex;
+
+    const thumbs = galleryImages.map((src, index) => {
+      const selected = index === safeIndex;
+      return `<button type="button" class="modal-thumb${selected ? ' is-active' : ''}" data-gallery-thumb="${index}" aria-label="Show image ${index + 1}" aria-pressed="${selected ? 'true' : 'false'}"><img data-media-img src="${src}" alt="${item.title} thumbnail ${index + 1}" loading="lazy"></button>`;
+    }).join('');
+
+    modalHeroMedia.innerHTML = `
+      <section class="modal-gallery" aria-label="Project gallery">
+        <div class="media-frame media-frame--landscape ratio-16x9 modal-gallery__hero"><img data-media-img src="${galleryImages[safeIndex]}" alt="${item.title} detail preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div>
+        <div class="modal-gallery__thumbs" role="list">${thumbs}</div>
+      </section>
+    `;
+  }
+
+  function syncModalHistory(opening) {
+    if (opening) {
+      const state = window.history.state || {};
+      if (!state[MODAL_HISTORY_KEY]) {
+        window.history.pushState({ ...state, [MODAL_HISTORY_KEY]: true }, '', window.location.href);
+      }
+      return;
+    }
+
+    const state = window.history.state || {};
+    if (state[MODAL_HISTORY_KEY]) {
+      suppressNextPopstateClose = true;
+      window.history.back();
+    }
+  }
 
   const customSelects = [];
 
@@ -467,6 +519,9 @@
 
     closeAllCustomSelects();
 
+    currentModalIndex = -1;
+    currentMediaIndex = 0;
+    suppressNextPopstateClose = false;
     scrollLockCount = 0;
   }
 
@@ -661,9 +716,9 @@
     });
   });
 
-  window.addEventListener('pageshow', () => {
+  window.addEventListener('pageshow', (event) => {
     document.documentElement.classList.add('bfcache-restore');
-    hardResetUI('pageshow');
+    hardResetUI(event.persisted ? 'pageshow-bfcache' : 'pageshow');
     requestAnimationFrame(() => hardResetUI('pageshow-rAF'));
     window.setTimeout(() => hardResetUI('pageshow-timeout'), 50);
     window.setTimeout(() => {
@@ -673,10 +728,6 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') hardResetUI('visibilitychange');
-  });
-
-  window.addEventListener('popstate', () => {
-    hardResetUI('popstate');
   });
 
   window.addEventListener('pagehide', () => {
@@ -766,28 +817,7 @@
     modalTitle.textContent = item.title;
     modalMeta.textContent = `${item.type} • ${item.date} • ${item.collections.join(', ')}`;
     if (modalSummary) modalSummary.textContent = item.summary;
-    const modalPreview = buildPlaceholder(item);
-
-    if (modalHeroMedia) {
-      modalHeroMedia.innerHTML = `
-        <section class="gallery-block" aria-label="Project gallery">
-          <div class="gallery-block__grid">
-            <article class="gallery-item">
-              <div class="media-frame media-frame--landscape ratio-16x9"><img data-media-img src="${modalPreview}" alt="${item.title} detail preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div>
-              <p class="gallery-item__kicker">Primary</p>
-              <h3 class="gallery-item__title">${item.title}</h3>
-              <p class="gallery-item__summary">${item.summary}</p>
-            </article>
-            <article class="gallery-item">
-              <div class="media-frame media-frame--portrait ratio-3x4"><img data-media-img src="${modalPreview}" alt="${item.title} portrait crop preview" loading="lazy"><span class="media-placeholder media-placeholder--portrait" aria-hidden="true"><span class="media-placeholder__caption">Portrait</span></span><span class="accent-tick" aria-hidden="true"></span></div>
-              <p class="gallery-item__kicker">Detail</p>
-              <h3 class="gallery-item__title">Editorial Crop</h3>
-              <p class="gallery-item__summary">Reusable portrait format for project storytelling.</p>
-            </article>
-          </div>
-        </section>
-      `;
-    }
+    renderModalGallery(item, 0);
 
     modalBody.innerHTML = `
       <h3>Problem</h3><p>${item.sections.problem}</p>
@@ -813,15 +843,19 @@
     modal.dataset.galleryMode = 'true';
     modalClose.focus();
     lockScroll();
+    syncModalHistory(true);
   }
 
-  function closeModal() {
+  function closeModal(options = {}) {
+    const { fromPopstate = false } = options;
     if (!modal) return;
+    const wasOpen = modal.classList.contains('open');
     setModalOpenState(false);
     modal.removeAttribute('data-gallery-mode');
     if (modalScroller) modalScroller.scrollTop = 0;
     unlockScroll();
-    if (lastFocused) lastFocused.focus();
+    if (wasOpen && !fromPopstate) syncModalHistory(false);
+    if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
   }
 
   function stepModal(direction) {
@@ -839,7 +873,7 @@
   if (collectionSelect) collectionSelect.addEventListener('change', (e) => { state.collection = e.target.value; runFilters(); });
   if (typeSelect) typeSelect.addEventListener('change', (e) => { state.type = e.target.value; runFilters(); });
   if (searchInput) searchInput.addEventListener('input', (e) => { state.search = e.target.value.trim().toLowerCase(); runFilters(); });
-  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalClose) modalClose.addEventListener('click', () => closeModal());
   if (modalPrev) modalPrev.addEventListener('click', () => stepModal(-1));
   if (modalNext) modalNext.addEventListener('click', () => stepModal(1));
 
@@ -851,6 +885,15 @@
     let touchStartY = 0;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     modal.addEventListener('keydown', trapFocus);
+    if (modalHeroMedia) modalHeroMedia.addEventListener('click', (event) => {
+      const thumb = event.target.closest('[data-gallery-thumb]');
+      if (!thumb || currentModalIndex < 0 || currentModalIndex >= filtered.length) return;
+      const nextIndex = Number(thumb.dataset.galleryThumb);
+      if (Number.isNaN(nextIndex)) return;
+      renderModalGallery(filtered[currentModalIndex], nextIndex);
+      applyNoWidow(modalHeroMedia);
+      hydrateMediaFrames(modalHeroMedia);
+    });
     if (modalPanel) {
       modalPanel.addEventListener('touchstart', (event) => {
         const touch = event.changedTouches && event.changedTouches[0];
@@ -879,5 +922,17 @@
     }
     if (e.key === 'ArrowLeft') stepModal(-1);
     if (e.key === 'ArrowRight') stepModal(1);
+  });
+
+  window.addEventListener('popstate', (event) => {
+    if (!modal || !modal.classList.contains('open')) return;
+    if (suppressNextPopstateClose) {
+      suppressNextPopstateClose = false;
+      closeModal({ fromPopstate: true });
+      return;
+    }
+    if (!(event.state && event.state[MODAL_HISTORY_KEY])) {
+      closeModal({ fromPopstate: true });
+    }
   });
 })();
