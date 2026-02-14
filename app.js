@@ -13,10 +13,34 @@
     document.body.insertBefore(skip, document.body.firstChild);
   }
 
+  let navBackdrop;
+  function closeNav() {
+    if (!navLinks || !navToggle) return;
+    navLinks.classList.remove('open');
+    navToggle.setAttribute('aria-expanded', 'false');
+    if (navBackdrop) navBackdrop.classList.remove('open');
+  }
+
   if (navToggle && navLinks) {
+    navBackdrop = document.createElement('button');
+    navBackdrop.className = 'nav-backdrop';
+    navBackdrop.type = 'button';
+    navBackdrop.setAttribute('aria-label', 'Close menu');
+    document.body.appendChild(navBackdrop);
+
     navToggle.addEventListener('click', () => {
       const isOpen = navLinks.classList.toggle('open');
       navToggle.setAttribute('aria-expanded', String(isOpen));
+      navBackdrop.classList.toggle('open', isOpen);
+      if (isOpen) {
+        const firstLink = navLinks.querySelector('a');
+        if (firstLink) firstLink.focus();
+      }
+    });
+
+    navBackdrop.addEventListener('click', closeNav);
+    navLinks.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', closeNav);
     });
   }
 
@@ -62,9 +86,12 @@
   const modalMeta = document.querySelector('[data-modal-meta]');
   const modalBody = document.querySelector('[data-modal-body]');
   const modalClose = document.querySelector('[data-modal-close]');
+  const modalPrev = document.querySelector('[data-modal-prev]');
+  const modalNext = document.querySelector('[data-modal-next]');
 
   let projects = [];
   let filtered = [];
+  let currentModalIndex = -1;
   let lastFocused;
 
   fetch('/projects.json')
@@ -113,7 +140,7 @@
     }).join('');
 
     document.querySelectorAll('[data-open-id]').forEach((btn) => {
-      btn.addEventListener('click', () => openModal(btn.dataset.openId));
+      btn.addEventListener('click', () => openModalById(btn.dataset.openId));
     });
     document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
   }
@@ -124,10 +151,18 @@
     return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="${safeType} placeholder"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16161d"/><stop offset="100%" stop-color="#0f0f13"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><g opacity="0.6"><rect x="64" y="84" width="672" height="2" fill="#C1121F"/><rect x="64" y="102" width="420" height="2" fill="rgba(245,245,245,0.45)"/></g><g opacity="0.3"><circle cx="640" cy="180" r="120" fill="#C1121F"/></g><text x="64" y="540" fill="rgba(245,245,245,0.75)" font-family="Inter,Arial,sans-serif" font-size="28" letter-spacing="5">${decodeURIComponent(label)}</text></svg>`)}`;
   }
 
-  function openModal(id) {
-    const item = projects.find((p) => p.id === id);
-    if (!item || !modal) return;
+  function openModalById(id) {
+    currentModalIndex = filtered.findIndex((p) => p.id === id);
+    openModalAtIndex(currentModalIndex);
+  }
+
+  function openModalAtIndex(index) {
+    if (!modal || index < 0 || index >= filtered.length) return;
+    const item = filtered[index];
+    if (!item) return;
+    currentModalIndex = index;
     lastFocused = document.activeElement;
+
     modalTitle.textContent = item.title;
     modalMeta.textContent = `${item.type} • ${item.date} • ${item.collections.join(', ')}`;
     modalBody.innerHTML = `
@@ -139,6 +174,10 @@
       <h3>Next Steps</h3><ul class="list">${item.sections.next_steps.map((x) => `<li>${x}</li>`).join('')}</ul>
       <h3>Tools</h3><p>${item.tools.join(', ')}</p>
     `;
+
+    if (modalPrev) modalPrev.disabled = currentModalIndex <= 0;
+    if (modalNext) modalNext.disabled = currentModalIndex >= filtered.length - 1;
+
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     modalClose.focus();
@@ -151,6 +190,13 @@
     modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
     if (lastFocused) lastFocused.focus();
+  }
+
+  function stepModal(direction) {
+    if (!modal || !modal.classList.contains('open')) return;
+    const nextIndex = currentModalIndex + direction;
+    if (nextIndex < 0 || nextIndex >= filtered.length) return;
+    openModalAtIndex(nextIndex);
   }
 
   function trapFocus(event) {
@@ -172,9 +218,20 @@
   if (typeSelect) typeSelect.addEventListener('change', (e) => { state.type = e.target.value; runFilters(); });
   if (searchInput) searchInput.addEventListener('input', (e) => { state.search = e.target.value.trim().toLowerCase(); runFilters(); });
   if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalPrev) modalPrev.addEventListener('click', () => stepModal(-1));
+  if (modalNext) modalNext.addEventListener('click', () => stepModal(1));
+
   if (modal) {
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     modal.addEventListener('keydown', trapFocus);
   }
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      closeNav();
+    }
+    if (e.key === 'ArrowLeft') stepModal(-1);
+    if (e.key === 'ArrowRight') stepModal(1);
+  });
 })();
