@@ -1015,7 +1015,18 @@ main.section > .container {
 }
 .footer-block a:hover { color: var(--text); }
 
-.modal {
+.is-scroll-locked,
+.is-scroll-locked body {
+  overflow: hidden;
+}
+
+body.is-scroll-locked {
+  position: fixed;
+  width: 100%;
+}
+
+.modal-overlay {
+  --modal-safe: clamp(16px, 2.4vw, 28px);
   position: fixed;
   inset: 0;
   background: rgba(6, 6, 8, 0.66);
@@ -1029,18 +1040,16 @@ main.section > .container {
   transition: opacity var(--dur-med) var(--ease-standard), visibility var(--dur-med) var(--ease-standard);
 }
 @supports ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
-  .modal { backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+  .modal-overlay { backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
 }
-.modal.open {
+.modal-overlay.open {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
 .modal-panel {
-  width: min(900px, 95vw);
-  max-height: 90vh;
-  overflow: auto;
-  overscroll-behavior: contain;
+  width: min(1080px, 95vw);
+  max-height: 92vh;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: #101014;
@@ -1048,14 +1057,18 @@ main.section > .container {
   opacity: 0;
   transform: translateY(8px);
   transition: transform var(--dur-med) var(--ease-standard), opacity var(--dur-med) var(--ease-standard);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.modal.open .modal-panel {
+.modal-overlay.open .modal-panel {
   opacity: 1;
   transform: translateY(0);
 }
-.modal-head {
+.modal-header {
   position: sticky;
   top: 0;
+  z-index: 2;
   background: #121217;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -1063,6 +1076,42 @@ main.section > .container {
   align-items: center;
   gap: var(--space-3);
   padding: 0.92rem 1.35rem;
+}
+.modal-scroller {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  flex: 1;
+}
+.modal-body {
+  padding: var(--modal-safe);
+}
+.modal-hero {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(320px, 520px);
+  gap: clamp(16px, 3vw, 32px);
+  align-items: start;
+  margin-bottom: var(--space-6);
+}
+.modal-content h3 {
+  margin: 1.3rem 0 0.4rem;
+  font-family: var(--font-serif);
+}
+.modal-summary {
+  margin: var(--space-3) 0 0;
+}
+.modal-hero-media .gallery-block {
+  margin: 0;
+}
+.modal-hero-media .gallery-block__grid {
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+.modal-hero-media .gallery-item {
+  padding: var(--space-3);
+}
+.modal-hero-media .gallery-item:last-child {
+  max-width: 70%;
 }
 .modal-actions {
   display: inline-flex;
@@ -1075,38 +1124,26 @@ main.section > .container {
   font-size: clamp(1.58rem, 2.2vw, 1.98rem);
   letter-spacing: -0.01em;
 }
-.modal-close {
+.modal-close,
+.modal-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-pill);
-  font-size: 0;
-  transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
-}
-.modal-close::before {
-  content: '';
-  width: 12px;
-  height: 12px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 2L10 10M10 2L2 10' stroke='rgba(245,245,245,0.82)' stroke-width='1.45' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-.modal-nav {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
   border-radius: 999px;
-  height: 34px;
-  min-width: 34px;
-  padding: 0 0.68rem;
-  font-size: 0.73rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  height: 36px;
+  min-width: 36px;
+  width: 36px;
+  padding: 0;
+  font-size: 0;
+  line-height: 1;
+}
+.modal-close span,
+.modal-nav span {
+  font-size: 0.95rem;
+  color: rgba(245,245,245,0.86);
 }
 .modal-nav[disabled] {
   opacity: 0.45;
@@ -1114,11 +1151,6 @@ main.section > .container {
 .modal-close:hover {
   background: rgba(245, 245, 245, 0.08);
   border-color: rgba(245, 245, 245, 0.3);
-}
-.modal-body { padding: var(--space-5); }
-.modal-body h3 {
-  margin: 1.3rem 0 0.4rem;
-  font-family: var(--font-serif);
 }
 .meta-line {
   color: var(--muted);
@@ -1172,6 +1204,12 @@ main.section > .container {
   .feature-highlight { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: repeat(2, 1fr); }
   .gallery-block__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .modal-hero {
+    grid-template-columns: 1fr;
+  }
+  .modal-hero-media .gallery-item:last-child {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1283,11 +1321,14 @@ main.section > .container {
   .work-grid-section {
     padding-top: var(--section-space-sm);
   }
-  .modal-head {
+  .modal-header {
     padding: 0.95rem 1rem;
   }
   .modal-body {
     padding: 1.1rem;
+  }
+  .modal-title {
+    font-size: clamp(1.3rem, 5vw, 1.6rem);
   }
   .caption-bar {
     padding: 0.95rem 0.95rem 1.2rem;
@@ -1304,7 +1345,7 @@ main.section > .container {
   .btn-row {
     gap: var(--space-3);
   }
-  .modal {
+  .modal-overlay {
     padding: 0.7rem;
   }
   .modal-panel {
