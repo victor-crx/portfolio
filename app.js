@@ -59,6 +59,59 @@
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
 
+
+  const reduceMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function prefersReducedMotion() {
+    return reduceMotionMedia.matches;
+  }
+
+  function initPageEnter() {
+    if (prefersReducedMotion()) return;
+    document.body.classList.add('page-enter');
+    const clear = () => document.body.classList.remove('page-enter');
+    window.setTimeout(clear, 260);
+    document.body.addEventListener('animationend', clear, { once: true });
+  }
+
+  function isInternalNavigableLink(link) {
+    if (!link) return false;
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#')) return false;
+    if (link.hasAttribute('download')) return false;
+    if (link.target && link.target !== '_self') return false;
+    if (/^(mailto:|tel:|javascript:)/i.test(href)) return false;
+
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return false;
+    return true;
+  }
+
+  function initPageLeaveNavigation() {
+    document.addEventListener('click', (event) => {
+      if (prefersReducedMotion()) return;
+      if (event.defaultPrevented) return;
+      if (event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const link = event.target.closest('a');
+      if (!isInternalNavigableLink(link)) return;
+
+      const nextUrl = new URL(link.href, window.location.href);
+      const samePath = nextUrl.pathname === window.location.pathname;
+      const sameSearch = nextUrl.search === window.location.search;
+      if (samePath && sameSearch && nextUrl.hash) return;
+
+      event.preventDefault();
+      document.body.classList.add('page-leave');
+      window.setTimeout(() => {
+        window.location.assign(nextUrl.href);
+      }, 200);
+    });
+  }
+
+  initPageEnter();
+  initPageLeaveNavigation();
   const path = window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`;
   document.querySelectorAll('.nav-links a').forEach((link) => {
     const href = link.getAttribute('href');
