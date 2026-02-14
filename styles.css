@@ -277,27 +277,25 @@ img { max-width: 100%; display: block; }
   letter-spacing: -0.016em;
   max-width: 20ch;
 }
-.motif-underline {
+.signature-rule {
   position: relative;
   padding-bottom: 1rem;
   margin-bottom: 1rem;
 }
-.motif-underline::after {
+.signature-rule::after {
   content: '';
   position: absolute;
   left: 0;
   bottom: 0;
-  width: 92px;
-  height: 3px;
-  background:
-    linear-gradient(to right, rgba(245, 245, 245, 0.45), rgba(245, 245, 245, 0.45)) top/100% 1px no-repeat,
-    linear-gradient(to right, rgba(245, 245, 245, 0.25), rgba(245, 245, 245, 0.25)) bottom/66% 1px no-repeat;
+  width: 96px;
+  height: 1px;
+  background: var(--border);
 }
-.motif-underline::before {
+.signature-rule::before {
   content: '';
   position: absolute;
-  left: 56px;
-  bottom: 2px;
+  left: 58px;
+  bottom: 0;
   width: 8px;
   height: 1px;
   background: rgba(193, 18, 31, 0.9);
@@ -516,31 +514,13 @@ select.control::-ms-expand { display: none; }
 }
 
 .footer {
-  border-top: 1px solid var(--border);
   background: #09090b;
   padding: 3rem 0 2.5rem;
-  position: relative;
 }
-.footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 140px;
-  height: 9px;
-  background:
-    linear-gradient(to right, rgba(245, 245, 245, 0.46), rgba(245, 245, 245, 0.46)) top/100% 1px no-repeat,
-    linear-gradient(to right, rgba(245, 245, 245, 0.22), rgba(245, 245, 245, 0.22)) bottom/70% 1px no-repeat;
-}
-.footer::after {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: calc(50% + 18px);
-  width: 8px;
-  height: 1px;
-  background: rgba(193, 18, 31, 0.88);
+.footer-signature-rule {
+  width: 96px;
+  margin: 0 auto 2.2rem;
+  padding-bottom: 0.9rem;
 }
 .footer-grid {
   display: grid;
@@ -552,6 +532,9 @@ select.control::-ms-expand { display: none; }
   border-radius: var(--radius-md);
   padding: var(--space-4);
   min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 .footer-block p { margin: 0; }
 .footer-block h4 {
