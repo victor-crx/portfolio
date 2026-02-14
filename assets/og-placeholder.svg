@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Victor Lane Portfolio Open Graph Placeholder</title>
+  <desc id="desc">Dark luxury-themed placeholder with subtle red accent and stripe motif.</desc>
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B0B0D" />
+      <stop offset="100%" stop-color="#131318" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7D0D16" />
+      <stop offset="50%" stop-color="#C1121F" />
+      <stop offset="100%" stop-color="#7D0D16" />
+    </linearGradient>
+    <pattern id="stripes" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+      <rect width="28" height="28" fill="none" />
+      <rect width="6" height="28" fill="#F5F5F5" opacity="0.05" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bgGradient)" />
+  <rect x="0" y="0" width="1200" height="630" fill="url(#stripes)" />
+  <rect x="72" y="72" width="1056" height="486" rx="18" fill="none" stroke="#F5F5F5" stroke-opacity="0.2" />
+  <rect x="72" y="495" width="1056" height="9" rx="4.5" fill="url(#accent)" />
+
+  <g fill="#F5F5F5">
+    <text x="110" y="250" font-family="'Playfair Display', serif" font-size="74" font-weight="600" letter-spacing="0.5">Victor Lane</text>
+    <text x="110" y="315" font-family="Inter, system-ui, sans-serif" font-size="35" font-weight="500" opacity="0.9">Portfolio Collection</text>
+    <text x="110" y="375" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="400" opacity="0.72">Systems • Collaboration • Delivery • Creative</text>
+  </g>
+
+  <g transform="translate(960 172)">
+    <rect width="132" height="132" rx="20" fill="none" stroke="#F5F5F5" stroke-opacity="0.3" />
+    <path d="M30 48h72M30 66h72" stroke="#F5F5F5" stroke-opacity="0.65" stroke-width="5" stroke-linecap="round" />
+    <path d="M84 90l13 13 22-25" fill="none" stroke="#C1121F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
