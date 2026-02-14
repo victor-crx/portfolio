@@ -166,7 +166,11 @@ img { max-width: 100%; display: block; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.skip-link:focus-visible { top: var(--space-4); }
+.skip-link:focus-visible {
+  top: var(--space-4);
+  outline: 2px solid rgba(11, 11, 13, 0.85);
+  outline-offset: 2px;
+}
 
 .container { width: var(--container); margin-inline: auto; }
 
@@ -227,6 +231,7 @@ img { max-width: 100%; display: block; }
 }
 .nav-links a {
   position: relative;
+  overflow: visible;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -478,6 +483,7 @@ main.section > .container {
   overflow: hidden;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -16px 28px rgba(0, 0, 0, 0.3);
   isolation: isolate;
+  aspect-ratio: 4 / 3;
 }
 
 .media-frame::before,
@@ -659,6 +665,7 @@ main.section > .container {
 .quote-band {
   position: relative;
   isolation: isolate;
+  aspect-ratio: 4 / 3;
 }
 .quote-band::before {
   content: '';
