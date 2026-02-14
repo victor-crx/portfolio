@@ -29,26 +29,30 @@
 
       <section class="filters reveal" aria-label="Filters">
         <div class="filter-row">
-          <select class="control" data-filter-collection>
-            <option value="all">All collections</option>
-            <option value="systems">Systems</option>
-            <option value="collab">Collaboration & Live</option>
-            <option value="delivery">Delivery</option>
-            <option value="creative">Creative</option>
-          </select>
-          <select class="control" data-filter-type>
-            <option value="all">All types</option>
-            <option value="case_study">Case Study</option>
-            <option value="lab">Lab</option>
-            <option value="template">Template</option>
-            <option value="gallery">Gallery</option>
-            <option value="writing">Writing</option>
-          </select>
+          <div class="select-wrap">
+            <select class="control" data-filter-collection>
+              <option value="all">All collections</option>
+              <option value="systems">Systems</option>
+              <option value="collab">Collaboration & Live</option>
+              <option value="delivery">Delivery</option>
+              <option value="creative">Creative</option>
+            </select>
+          </div>
+          <div class="select-wrap">
+            <select class="control" data-filter-type>
+              <option value="all">All types</option>
+              <option value="case_study">Case Study</option>
+              <option value="lab">Lab</option>
+              <option value="template">Template</option>
+              <option value="gallery">Gallery</option>
+              <option value="writing">Writing</option>
+            </select>
+          </div>
           <input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" />
         </div>
-</section>
+      </section>
 
-      <section class="section" style="padding:1.5rem 0 0;">
+      <section class="section work-grid-section">
         <div class="card-grid" data-project-grid></div>
       </section>
     </div>
