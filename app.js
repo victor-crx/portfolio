@@ -17,6 +17,20 @@
   let navLastFocused;
   let scrollLockCount = 0;
 
+  function focusMainFromHash() {
+    if (window.location.hash !== '#main-content' || !firstMain) return;
+    firstMain.tabIndex = -1;
+    firstMain.focus({ preventScroll: true });
+  }
+
+  document.addEventListener('click', (event) => {
+    const skipLink = event.target.closest('.skip-link');
+    if (!skipLink) return;
+    window.setTimeout(focusMainFromHash, 0);
+  });
+  window.addEventListener('hashchange', focusMainFromHash);
+  focusMainFromHash();
+
   function lockScroll() {
     scrollLockCount += 1;
     document.body.style.overflow = 'hidden';
@@ -64,9 +78,15 @@
     });
   }
 
+  let scrollTicking = false;
   function onScroll() {
     if (!header) return;
-    header.classList.toggle('scrolled', window.scrollY > 12);
+    if (scrollTicking) return;
+    scrollTicking = true;
+    window.requestAnimationFrame(() => {
+      header.classList.toggle('scrolled', window.scrollY > 12);
+      scrollTicking = false;
+    });
   }
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -122,8 +142,57 @@
     });
   }
 
+  function initSmartPrefetch() {
+    const routeSet = new Set(['/work/', '/about/', '/contact/', '/systems/', '/collab/', '/delivery/', '/creative/']);
+    const prefetched = new Set();
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const effectiveType = connection && connection.effectiveType ? String(connection.effectiveType).toLowerCase() : '';
+    const shouldSkipPrefetch = Boolean(connection && connection.saveData)
+      || effectiveType.includes('slow-2g')
+      || effectiveType.includes('2g');
+    if (shouldSkipPrefetch) return;
+
+    const link = document.createElement('link');
+    const supportsPrefetch = !!(link.relList && link.relList.supports && link.relList.supports('prefetch'));
+
+    function maybePrefetch(urlString) {
+      const url = new URL(urlString, window.location.href);
+      const normalizedPath = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`;
+      if (url.origin !== window.location.origin) return;
+      if (!routeSet.has(normalizedPath)) return;
+      if (normalizedPath === window.location.pathname) return;
+      if (prefetched.has(url.href)) return;
+      prefetched.add(url.href);
+
+      if (supportsPrefetch) {
+        const prefetchLink = document.createElement('link');
+        prefetchLink.rel = 'prefetch';
+        prefetchLink.as = 'document';
+        prefetchLink.href = url.href;
+        document.head.appendChild(prefetchLink);
+        return;
+      }
+
+      fetch(url.href, { credentials: 'same-origin' }).catch(() => {
+        prefetched.delete(url.href);
+      });
+    }
+
+    document.querySelectorAll('.nav-links a').forEach((navLink) => {
+      navLink.addEventListener('pointerenter', () => maybePrefetch(navLink.href), { passive: true });
+      navLink.addEventListener('focus', () => maybePrefetch(navLink.href));
+    });
+
+    const idlePrefetch = () => {
+      ['/work/', '/about/'].forEach((route) => maybePrefetch(route));
+    };
+    const requestIdle = window.requestIdleCallback || ((cb) => window.setTimeout(cb, 180));
+    requestIdle(idlePrefetch);
+  }
+
   initPageEnter();
   initPageLeaveNavigation();
+  initSmartPrefetch();
   const path = window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`;
   document.querySelectorAll('.nav-links a').forEach((link) => {
     const href = link.getAttribute('href');
@@ -412,6 +481,21 @@
     return api;
   }
 
+
+
+  function enforceA11yLabels() {
+    if (navToggle && !navToggle.getAttribute('aria-label')) {
+      navToggle.setAttribute('aria-label', 'Toggle navigation menu');
+    }
+    if (modalClose && !modalClose.getAttribute('aria-label')) {
+      modalClose.setAttribute('aria-label', 'Close dialog');
+    }
+    document.querySelectorAll('[data-select-trigger]').forEach((trigger) => {
+      if (!trigger.hasAttribute('aria-haspopup')) trigger.setAttribute('aria-haspopup', 'listbox');
+      if (!trigger.hasAttribute('aria-expanded')) trigger.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   document.querySelectorAll('[data-custom-select]').forEach((root) => {
     const customSelect = createCustomSelect(root);
     if (customSelect) customSelects.push(customSelect);
@@ -588,6 +672,8 @@
   if (modalClose) modalClose.addEventListener('click', closeModal);
   if (modalPrev) modalPrev.addEventListener('click', () => stepModal(-1));
   if (modalNext) modalNext.addEventListener('click', () => stepModal(1));
+
+  enforceA11yLabels();
 
   if (modal) {
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
