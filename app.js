@@ -133,10 +133,11 @@
     if (normalizedPath === normalized) link.classList.add('active');
   });
 
+  let reveal;
   if (prefersReducedMotion()) {
     document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
   } else {
-    const reveal = new IntersectionObserver((entries) => {
+    reveal = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) entry.target.classList.add('visible');
       });
@@ -356,15 +357,23 @@
     });
   });
 
-  fetch('/projects.json')
-    .then((r) => r.json())
+  const projectsUrl = '/projects.json';
+
+  fetch(projectsUrl)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} while requesting ${projectsUrl}`);
+      }
+      return response.json();
+    })
     .then((data) => {
       projects = data.projects || [];
       if (collectionSelect) collectionSelect.value = bodyDefault;
       runFilters();
     })
-    .catch(() => {
-      grid.innerHTML = '<p>Unable to load projects.json in this browser context.</p>';
+    .catch((error) => {
+      const detail = error && error.message ? error.message : `Request failed for ${projectsUrl}`;
+      grid.innerHTML = `<p>Unable to load projects.json. <small>${detail}</small></p>`;
     });
 
   function runFilters() {
@@ -407,7 +416,7 @@
     document.querySelectorAll('[data-open-id]').forEach((btn) => {
       btn.addEventListener('click', () => openModalById(btn.dataset.openId));
     });
-    document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
+    if (reveal) document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
   }
 
   function buildPlaceholder(item) {
