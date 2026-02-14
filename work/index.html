@@ -78,18 +78,21 @@
         <div class="filter-row">
           <div class="custom-select" data-custom-select>
             <label class="sr-only" id="collection-filter-label" for="collection-filter-native">Collection</label>
-            <select class="control sr-only-native" id="collection-filter-native" data-filter-collection>
-              <option value="all">All collections</option>
-              <option value="systems">Systems</option>
-              <option value="collab">Collaboration & Live</option>
-              <option value="delivery">Delivery</option>
-              <option value="creative">Creative</option>
-            </select>
+            <div class="native-select-fallback" hidden aria-hidden="true">
+              <select class="control sr-only-native" id="collection-filter-native" data-filter-collection tabindex="-1">
+                <option value="all">All collections</option>
+                <option value="systems">Systems</option>
+                <option value="collab">Collaboration & Live</option>
+                <option value="delivery">Delivery</option>
+                <option value="creative">Creative</option>
+              </select>
+            </div>
             <button
               class="control custom-select-trigger"
               type="button"
               aria-haspopup="listbox"
               aria-expanded="false"
+              aria-controls="collection-filter-listbox"
               aria-labelledby="collection-filter-label collection-filter-trigger"
               id="collection-filter-trigger"
               data-select-trigger
@@ -97,30 +100,33 @@
               <span data-select-label>All collections</span>
               <span class="custom-select-caret" aria-hidden="true"></span>
             </button>
-            <div class="custom-select-panel" role="listbox" tabindex="-1" aria-labelledby="collection-filter-label" data-select-listbox>
-              <button type="button" class="custom-select-option" role="option" data-select-option="all" aria-selected="true">All collections</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="systems" aria-selected="false">Systems</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="collab" aria-selected="false">Collaboration & Live</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="delivery" aria-selected="false">Delivery</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="creative" aria-selected="false">Creative</button>
+            <div class="custom-select-panel" id="collection-filter-listbox" role="listbox" tabindex="-1" aria-labelledby="collection-filter-label" data-select-listbox>
+              <button type="button" class="custom-select-option" id="collection-filter-option-all" role="option" data-select-option="all" aria-selected="true">All collections</button>
+              <button type="button" class="custom-select-option" id="collection-filter-option-systems" role="option" data-select-option="systems" aria-selected="false">Systems</button>
+              <button type="button" class="custom-select-option" id="collection-filter-option-collab" role="option" data-select-option="collab" aria-selected="false">Collaboration & Live</button>
+              <button type="button" class="custom-select-option" id="collection-filter-option-delivery" role="option" data-select-option="delivery" aria-selected="false">Delivery</button>
+              <button type="button" class="custom-select-option" id="collection-filter-option-creative" role="option" data-select-option="creative" aria-selected="false">Creative</button>
             </div>
           </div>
 
           <div class="custom-select" data-custom-select>
             <label class="sr-only" id="type-filter-label" for="type-filter-native">Type</label>
-            <select class="control sr-only-native" id="type-filter-native" data-filter-type>
-              <option value="all">All types</option>
-              <option value="case_study">Case Study</option>
-              <option value="lab">Lab</option>
-              <option value="template">Template</option>
-              <option value="gallery">Gallery</option>
-              <option value="writing">Writing</option>
-            </select>
+            <div class="native-select-fallback" hidden aria-hidden="true">
+              <select class="control sr-only-native" id="type-filter-native" data-filter-type tabindex="-1">
+                <option value="all">All types</option>
+                <option value="case_study">Case Study</option>
+                <option value="lab">Lab</option>
+                <option value="template">Template</option>
+                <option value="gallery">Gallery</option>
+                <option value="writing">Writing</option>
+              </select>
+            </div>
             <button
               class="control custom-select-trigger"
               type="button"
               aria-haspopup="listbox"
               aria-expanded="false"
+              aria-controls="type-filter-listbox"
               aria-labelledby="type-filter-label type-filter-trigger"
               id="type-filter-trigger"
               data-select-trigger
@@ -128,13 +134,13 @@
               <span data-select-label>All types</span>
               <span class="custom-select-caret" aria-hidden="true"></span>
             </button>
-            <div class="custom-select-panel" role="listbox" tabindex="-1" aria-labelledby="type-filter-label" data-select-listbox>
-              <button type="button" class="custom-select-option" role="option" data-select-option="all" aria-selected="true">All types</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="case_study" aria-selected="false">Case Study</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="lab" aria-selected="false">Lab</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="template" aria-selected="false">Template</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="gallery" aria-selected="false">Gallery</button>
-              <button type="button" class="custom-select-option" role="option" data-select-option="writing" aria-selected="false">Writing</button>
+            <div class="custom-select-panel" id="type-filter-listbox" role="listbox" tabindex="-1" aria-labelledby="type-filter-label" data-select-listbox>
+              <button type="button" class="custom-select-option" id="type-filter-option-all" role="option" data-select-option="all" aria-selected="true">All types</button>
+              <button type="button" class="custom-select-option" id="type-filter-option-case-study" role="option" data-select-option="case_study" aria-selected="false">Case Study</button>
+              <button type="button" class="custom-select-option" id="type-filter-option-lab" role="option" data-select-option="lab" aria-selected="false">Lab</button>
+              <button type="button" class="custom-select-option" id="type-filter-option-template" role="option" data-select-option="template" aria-selected="false">Template</button>
+              <button type="button" class="custom-select-option" id="type-filter-option-gallery" role="option" data-select-option="gallery" aria-selected="false">Gallery</button>
+              <button type="button" class="custom-select-option" id="type-filter-option-writing" role="option" data-select-option="writing" aria-selected="false">Writing</button>
             </div>
           </div>
 

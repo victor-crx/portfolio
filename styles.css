@@ -856,6 +856,10 @@ main.section > .container {
   flex: 1 1 210px;
   overflow: visible;
 }
+.native-select-fallback[hidden] {
+  display: none;
+}
+
 .sr-only-native {
   position: absolute;
   opacity: 0;
