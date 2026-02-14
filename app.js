@@ -14,11 +14,14 @@
   }
 
   let navBackdrop;
-  function closeNav() {
+  let navLastFocused;
+  function closeNav(returnFocus = true) {
     if (!navLinks || !navToggle) return;
     navLinks.classList.remove('open');
     navToggle.setAttribute('aria-expanded', 'false');
     if (navBackdrop) navBackdrop.classList.remove('open');
+    document.body.style.overflow = '';
+    if (returnFocus && navLastFocused) navLastFocused.focus();
   }
 
   if (navToggle && navLinks) {
@@ -32,15 +35,20 @@
       const isOpen = navLinks.classList.toggle('open');
       navToggle.setAttribute('aria-expanded', String(isOpen));
       navBackdrop.classList.toggle('open', isOpen);
+
       if (isOpen) {
+        navLastFocused = document.activeElement;
+        document.body.style.overflow = 'hidden';
         const firstLink = navLinks.querySelector('a');
         if (firstLink) firstLink.focus();
+      } else {
+        closeNav();
       }
     });
 
-    navBackdrop.addEventListener('click', closeNav);
+    navBackdrop.addEventListener('click', () => closeNav(false));
     navLinks.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', closeNav);
+      link.addEventListener('click', () => closeNav(false));
     });
   }
 
@@ -93,6 +101,166 @@
   let filtered = [];
   let currentModalIndex = -1;
   let lastFocused;
+
+  const customSelects = [];
+
+  function closeAllCustomSelects(except) {
+    customSelects.forEach((item) => {
+      if (item !== except) item.close(false);
+    });
+  }
+
+  function createCustomSelect(root) {
+    const nativeSelect = root.querySelector('select');
+    const trigger = root.querySelector('[data-select-trigger]');
+    const label = root.querySelector('[data-select-label]');
+    const listbox = root.querySelector('[data-select-listbox]');
+    const options = Array.from(root.querySelectorAll('[data-select-option]'));
+    if (!nativeSelect || !trigger || !listbox || !options.length || !label) return null;
+
+    let activeIndex = Math.max(0, options.findIndex((option) => option.dataset.selectOption === nativeSelect.value));
+
+    function syncSelection(value, emitChange = false) {
+      const selectedValue = value || options[0].dataset.selectOption;
+      nativeSelect.value = selectedValue;
+      options.forEach((option, index) => {
+        const isSelected = option.dataset.selectOption === selectedValue;
+        option.setAttribute('aria-selected', String(isSelected));
+        option.tabIndex = index === activeIndex ? 0 : -1;
+        option.classList.toggle('is-selected', isSelected);
+      });
+
+      const selectedOption = options.find((option) => option.dataset.selectOption === selectedValue) || options[0];
+      if (selectedOption) {
+        activeIndex = options.indexOf(selectedOption);
+        selectedOption.tabIndex = 0;
+        label.textContent = selectedOption.textContent;
+      }
+
+      if (emitChange) {
+        nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    function open() {
+      closeAllCustomSelects(api);
+      root.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      const activeOption = options[activeIndex] || options[0];
+      if (activeOption) activeOption.focus();
+    }
+
+    function close(returnFocus = false) {
+      root.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+      if (returnFocus) trigger.focus();
+    }
+
+    function chooseByIndex(index) {
+      const normalized = Math.max(0, Math.min(options.length - 1, index));
+      activeIndex = normalized;
+      syncSelection(options[normalized].dataset.selectOption, true);
+      close(true);
+    }
+
+    function moveActive(step) {
+      activeIndex = (activeIndex + step + options.length) % options.length;
+      options.forEach((option, index) => {
+        option.tabIndex = index === activeIndex ? 0 : -1;
+      });
+      options[activeIndex].focus();
+    }
+
+    trigger.addEventListener('click', () => {
+      if (root.classList.contains('open')) close();
+      else open();
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (root.classList.contains('open')) close();
+        else open();
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (!root.classList.contains('open')) open();
+        else moveActive(1);
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!root.classList.contains('open')) open();
+        else moveActive(-1);
+      }
+      if (event.key === 'Escape') {
+        close();
+      }
+    });
+
+    listbox.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveActive(1);
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveActive(-1);
+      }
+      if (event.key === 'Home') {
+        event.preventDefault();
+        activeIndex = 0;
+        options[0].focus();
+      }
+      if (event.key === 'End') {
+        event.preventDefault();
+        activeIndex = options.length - 1;
+        options[activeIndex].focus();
+      }
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        chooseByIndex(activeIndex);
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close(true);
+      }
+      if (event.key === 'Tab') {
+        close(false);
+      }
+    });
+
+    options.forEach((option, index) => {
+      option.addEventListener('click', () => chooseByIndex(index));
+      option.addEventListener('mousemove', () => {
+        activeIndex = index;
+        option.tabIndex = 0;
+      });
+    });
+
+    nativeSelect.addEventListener('change', () => {
+      syncSelection(nativeSelect.value, false);
+    });
+
+    syncSelection(nativeSelect.value || nativeSelect.options[0].value, false);
+
+    const api = {
+      root,
+      close,
+      isOpen: () => root.classList.contains('open')
+    };
+    return api;
+  }
+
+  document.querySelectorAll('[data-custom-select]').forEach((root) => {
+    const customSelect = createCustomSelect(root);
+    if (customSelect) customSelects.push(customSelect);
+  });
+
+  document.addEventListener('click', (event) => {
+    customSelects.forEach((item) => {
+      if (!item.root.contains(event.target)) item.close(false);
+    });
+  });
 
   fetch('/projects.json')
     .then((r) => r.json())
@@ -230,6 +398,7 @@
     if (e.key === 'Escape') {
       closeModal();
       closeNav();
+      closeAllCustomSelects();
     }
     if (e.key === 'ArrowLeft') stepModal(-1);
     if (e.key === 'ArrowRight') stepModal(1);
