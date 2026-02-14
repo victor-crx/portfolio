@@ -199,6 +199,34 @@
 
   const customSelects = [];
 
+  function resetTransientUI() {
+    const transitionClasses = ['page-enter', 'page-leave'];
+
+    transitionClasses.forEach((className) => {
+      document.documentElement.classList.remove(className);
+      document.body.classList.remove(className);
+    });
+
+    ['opacity', 'transform'].forEach((property) => {
+      document.documentElement.style.removeProperty(property);
+      document.body.style.removeProperty(property);
+    });
+
+    if (navLinks) navLinks.classList.remove('open');
+    if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
+    if (navBackdrop) navBackdrop.classList.remove('open');
+
+    if (modal) {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    closeAllCustomSelects();
+
+    scrollLockCount = 0;
+    document.body.style.overflow = '';
+  }
+
   function closeAllCustomSelects(except) {
     customSelects.forEach((item) => {
       if (item !== except) item.close(false);
@@ -355,6 +383,14 @@
     customSelects.forEach((item) => {
       if (!item.root.contains(event.target)) item.close(false);
     });
+  });
+
+  window.addEventListener('pageshow', () => {
+    resetTransientUI();
+  });
+
+  window.addEventListener('pagehide', () => {
+    resetTransientUI();
   });
 
   const projectsUrl = '/projects.json';
