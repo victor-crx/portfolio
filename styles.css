@@ -44,9 +44,13 @@ img { max-width: 100%; display: block; }
   gap: 1rem;
 }
 .brand {
-  font-family: 'Playfair Display', serif;
-  letter-spacing: 0.04em;
-  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand img {
+  width: clamp(140px, 16vw, 188px);
+  height: auto;
 }
 .nav-toggle {
   border: 1px solid var(--border);
@@ -61,7 +65,7 @@ img { max-width: 100%; display: block; }
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: .3rem;
+  gap: .4rem;
 }
 .nav-links a {
   font-size: .82rem;
@@ -257,37 +261,24 @@ img { max-width: 100%; display: block; }
 
 .filters {
   display: grid;
-  gap: 1rem;
+  gap: 1.2rem;
   border: 1px solid var(--border);
   background: var(--surface);
-  padding: 1rem;
+  padding: 1.15rem;
 }
 .filter-row {
   display: flex;
   flex-wrap: wrap;
-  gap: .6rem;
+  gap: .75rem;
+  align-items: center;
 }
 .control {
   background: #0f0f12;
   border: 1px solid var(--border);
   color: var(--text);
-  padding: .62rem .72rem;
+  padding: .7rem .78rem;
   min-width: 190px;
-}
-.chips { display: flex; flex-wrap: wrap; gap: .48rem; }
-.chip {
-  border: 1px solid var(--border);
-  padding: .32rem .58rem;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  font-size: .67rem;
-  background: transparent;
-  color: var(--muted);
-}
-.chip.active {
-  color: var(--text);
-  border-color: var(--accent);
-  background: rgba(193, 18, 31, 0.16);
+  flex: 1 1 210px;
 }
 
 .footer {

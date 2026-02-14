@@ -2,15 +2,19 @@
   const navToggle = document.querySelector('.nav-toggle');
   const navLinks = document.querySelector('.nav-links');
   if (navToggle && navLinks) {
-    navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+    navToggle.addEventListener('click', () => {
+      const isOpen = navLinks.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', String(isOpen));
+    });
   }
 
-  const path = window.location.pathname;
+  const path = window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`;
   document.querySelectorAll('.nav-links a').forEach((link) => {
     const href = link.getAttribute('href');
     if (!href) return;
-    const normalized = href.replace(/index\.html$/, '');
-    if (path.endsWith(normalized) || (normalized === './' && /\/$/.test(path))) link.classList.add('active');
+    const normalized = href.replace(/index\.html$/, '').replace(/\/$/, '') || '/';
+    const normalizedPath = path.replace(/\/$/, '') || '/';
+    if (normalizedPath === normalized) link.classList.add('active');
   });
 
   const reveal = new IntersectionObserver((entries) => {
@@ -27,14 +31,12 @@
   const state = {
     collection: bodyDefault,
     type: 'all',
-    tags: new Set(),
     search: ''
   };
 
   const collectionSelect = document.querySelector('[data-filter-collection]');
   const typeSelect = document.querySelector('[data-filter-type]');
   const searchInput = document.querySelector('[data-filter-search]');
-  const chipsBox = document.querySelector('[data-tag-chips]');
   const countNode = document.querySelector('[data-results-count]');
   const modal = document.querySelector('[data-modal]');
   const modalTitle = document.querySelector('[data-modal-title]');
@@ -46,15 +48,12 @@
   let filtered = [];
   let lastFocused;
 
-  const jsonPath = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') && !window.location.pathname.match(/\/(work|systems|collab|delivery|creative|about|resume|contact)\//)
-    ? './projects.json'
-    : '../projects.json';
+  const jsonPath = '/projects.json';
 
   fetch(jsonPath)
     .then((r) => r.json())
     .then((data) => {
       projects = data.projects || [];
-      buildTagChips(projects);
       if (collectionSelect) collectionSelect.value = bodyDefault;
       runFilters();
     })
@@ -62,29 +61,13 @@
       grid.innerHTML = '<p>Unable to load projects.json in this browser context.</p>';
     });
 
-  function buildTagChips(items) {
-    if (!chipsBox) return;
-    const tags = [...new Set(items.flatMap((item) => item.tags || []))].sort();
-    chipsBox.innerHTML = tags.map((tag) => `<button class="chip" type="button" data-tag="${tag}">${tag}</button>`).join('');
-    chipsBox.addEventListener('click', (event) => {
-      const btn = event.target.closest('[data-tag]');
-      if (!btn) return;
-      const tag = btn.dataset.tag;
-      if (state.tags.has(tag)) state.tags.delete(tag);
-      else state.tags.add(tag);
-      btn.classList.toggle('active');
-      runFilters();
-    });
-  }
-
   function runFilters() {
     filtered = projects.filter((item) => {
       const collectionMatch = state.collection === 'all' || (item.collections || []).includes(state.collection);
       const typeMatch = state.type === 'all' || item.type === state.type;
-      const tagMatch = !state.tags.size || [...state.tags].every((tag) => (item.tags || []).includes(tag));
       const haystack = [item.title, item.summary, ...(item.tags || []), ...(item.tools || [])].join(' ').toLowerCase();
       const searchMatch = !state.search || haystack.includes(state.search);
-      return collectionMatch && typeMatch && tagMatch && searchMatch;
+      return collectionMatch && typeMatch && searchMatch;
     }).sort((a, b) => b.date.localeCompare(a.date));
 
     renderCards(filtered);
@@ -115,8 +98,10 @@
   }
 
   function resolveAsset(item) {
-    const first = item.artifacts && item.artifacts[0] ? item.artifacts[0].path : './assets/project-placeholder.svg';
-    return first.startsWith('./assets') && jsonPath.startsWith('../') ? first.replace('./assets', '../assets') : first;
+    const first = item.artifacts && item.artifacts[0] ? item.artifacts[0].path : '/assets/project-placeholder.svg';
+    if (first.startsWith('./assets')) return first.replace('./assets', '/assets');
+    if (first.startsWith('../assets')) return first.replace('../assets', '/assets');
+    return first;
   }
 
   function openModal(id) {
