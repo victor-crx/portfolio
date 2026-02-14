@@ -226,6 +226,14 @@
   }
 
   function hydrateMediaFrames(scope = document) {
+    scope.querySelectorAll('.feature-media .media-frame').forEach((frame) => {
+      if (frame.querySelector('.media-placeholder')) return;
+      const isPortrait = frame.classList.contains('ratio-3x4') || frame.classList.contains('media-frame--portrait');
+      const placeholderType = isPortrait ? 'portrait' : 'featured';
+      const label = isPortrait ? 'Portrait' : 'Featured';
+      frame.insertAdjacentHTML('beforeend', `<span class="media-placeholder media-placeholder--${placeholderType}" aria-hidden="true"><span class="media-placeholder__caption">${label}</span></span>`);
+    });
+
     scope.querySelectorAll('.media-frame img, .media-frame [data-media-img]').forEach((media) => {
       if (media.complete) {
         media.classList.add('is-loaded');
@@ -572,7 +580,7 @@
       return `
       <article class="project-card reveal">
         <button type="button" class="project-tile" data-open-id="${item.id}">
-          <div class="project-image-shell"><div class="media-frame ratio-4x3"><img class="project-image" data-media-img src="${preview}" alt="${item.title} abstract preview" loading="lazy"><span class="accent-tick" aria-hidden="true"></span></div></div>
+          <div class="project-image-shell"><div class="media-frame media-frame--landscape ratio-4x3"><img class="project-image" data-media-img src="${preview}" alt="${item.title} abstract preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div></div>
           <div class="caption-bar">
             <div class="caption-meta">${item.type.replace('_', ' ')} • ${item.date}</div>
             <h3 class="caption-title balance no-widow">${item.title}</h3>
@@ -614,7 +622,22 @@
     const modalPreview = buildPlaceholder(item);
 
     modalBody.innerHTML = `
-      <div class="media-frame ratio-16x9"><img data-media-img src="${modalPreview}" alt="${item.title} detail preview" loading="lazy"><span class="accent-tick" aria-hidden="true"></span></div>
+      <section class="gallery-block" aria-label="Project gallery">
+        <div class="gallery-block__grid">
+          <article class="gallery-item">
+            <div class="media-frame media-frame--landscape ratio-16x9"><img data-media-img src="${modalPreview}" alt="${item.title} detail preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div>
+            <p class="gallery-item__kicker">Primary</p>
+            <h3 class="gallery-item__title">${item.title}</h3>
+            <p class="gallery-item__summary">${item.summary}</p>
+          </article>
+          <article class="gallery-item">
+            <div class="media-frame media-frame--portrait ratio-3x4"><img data-media-img src="${modalPreview}" alt="${item.title} portrait crop preview" loading="lazy"><span class="media-placeholder media-placeholder--portrait" aria-hidden="true"><span class="media-placeholder__caption">Portrait</span></span><span class="accent-tick" aria-hidden="true"></span></div>
+            <p class="gallery-item__kicker">Detail</p>
+            <h3 class="gallery-item__title">Editorial Crop</h3>
+            <p class="gallery-item__summary">Reusable portrait format for project storytelling.</p>
+          </article>
+        </div>
+      </section>
       <p>${item.summary}</p>
       <h3>Problem</h3><p>${item.sections.problem}</p>
       <h3>Constraints</h3><p>${item.sections.constraints}</p>
@@ -631,6 +654,7 @@
     hydrateMediaFrames(modalBody);
 
     modal.classList.add('open');
+    modal.dataset.galleryMode = 'true';
     modal.setAttribute('aria-hidden', 'false');
     modalClose.focus();
     lockScroll();
@@ -639,6 +663,7 @@
   function closeModal() {
     if (!modal) return;
     modal.classList.remove('open');
+    modal.removeAttribute('data-gallery-mode');
     modal.setAttribute('aria-hidden', 'true');
     unlockScroll();
     if (lastFocused) lastFocused.focus();
@@ -676,8 +701,29 @@
   enforceA11yLabels();
 
   if (modal) {
+    const modalPanel = modal.querySelector('.modal-panel');
+    let touchStartX = 0;
+    let touchStartY = 0;
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     modal.addEventListener('keydown', trapFocus);
+    if (modalPanel) {
+      modalPanel.addEventListener('touchstart', (event) => {
+        const touch = event.changedTouches && event.changedTouches[0];
+        if (!touch) return;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+      }, { passive: true });
+
+      modalPanel.addEventListener('touchend', (event) => {
+        const touch = event.changedTouches && event.changedTouches[0];
+        if (!touch) return;
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        const swipeThreshold = 48;
+        if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaY) > Math.abs(deltaX) * 0.75) return;
+        stepModal(deltaX < 0 ? 1 : -1);
+      }, { passive: true });
+    }
   }
 
   document.addEventListener('keydown', (e) => {
