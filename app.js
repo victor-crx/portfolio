@@ -16,6 +16,7 @@
   let navBackdrop;
   let navLastFocused;
   let scrollLockCount = 0;
+  let savedScrollY = 0;
 
   function focusMainFromHash() {
     if (window.location.hash !== '#main-content' || !firstMain) return;
@@ -32,13 +33,23 @@
   focusMainFromHash();
 
   function lockScroll() {
+    if (scrollLockCount === 0) {
+      savedScrollY = window.scrollY || window.pageYOffset || 0;
+      document.documentElement.classList.add('is-scroll-locked');
+      document.body.classList.add('is-scroll-locked');
+      document.body.style.top = `-${savedScrollY}px`;
+    }
     scrollLockCount += 1;
-    document.body.style.overflow = 'hidden';
   }
 
   function unlockScroll() {
     scrollLockCount = Math.max(0, scrollLockCount - 1);
-    if (scrollLockCount === 0) document.body.style.overflow = '';
+    if (scrollLockCount === 0) {
+      document.documentElement.classList.remove('is-scroll-locked');
+      document.body.classList.remove('is-scroll-locked');
+      document.body.style.removeProperty('top');
+      window.scrollTo({ top: savedScrollY, left: 0, behavior: 'auto' });
+    }
   }
 
   const focusableSelector = 'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])';
@@ -378,7 +389,10 @@
   const modal = document.querySelector('[data-modal]');
   const modalTitle = document.querySelector('[data-modal-title]');
   const modalMeta = document.querySelector('[data-modal-meta]');
+  const modalSummary = document.querySelector('[data-modal-summary]');
+  const modalHeroMedia = document.querySelector('[data-modal-hero-media]');
   const modalBody = document.querySelector('[data-modal-body]');
+  const modalScroller = document.querySelector('[data-modal-scroller]');
   const modalClose = document.querySelector('[data-modal-close]');
   const modalPrev = document.querySelector('[data-modal-prev]');
   const modalNext = document.querySelector('[data-modal-next]');
@@ -437,6 +451,9 @@
 
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
+    document.documentElement.classList.remove('is-scroll-locked');
+    document.body.classList.remove('is-scroll-locked');
+    document.body.style.removeProperty('top');
 
     if (navLinks && navToggle) closeNav(false);
     if (navBackdrop) {
@@ -748,26 +765,31 @@
 
     modalTitle.textContent = item.title;
     modalMeta.textContent = `${item.type} • ${item.date} • ${item.collections.join(', ')}`;
+    if (modalSummary) modalSummary.textContent = item.summary;
     const modalPreview = buildPlaceholder(item);
 
+    if (modalHeroMedia) {
+      modalHeroMedia.innerHTML = `
+        <section class="gallery-block" aria-label="Project gallery">
+          <div class="gallery-block__grid">
+            <article class="gallery-item">
+              <div class="media-frame media-frame--landscape ratio-16x9"><img data-media-img src="${modalPreview}" alt="${item.title} detail preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div>
+              <p class="gallery-item__kicker">Primary</p>
+              <h3 class="gallery-item__title">${item.title}</h3>
+              <p class="gallery-item__summary">${item.summary}</p>
+            </article>
+            <article class="gallery-item">
+              <div class="media-frame media-frame--portrait ratio-3x4"><img data-media-img src="${modalPreview}" alt="${item.title} portrait crop preview" loading="lazy"><span class="media-placeholder media-placeholder--portrait" aria-hidden="true"><span class="media-placeholder__caption">Portrait</span></span><span class="accent-tick" aria-hidden="true"></span></div>
+              <p class="gallery-item__kicker">Detail</p>
+              <h3 class="gallery-item__title">Editorial Crop</h3>
+              <p class="gallery-item__summary">Reusable portrait format for project storytelling.</p>
+            </article>
+          </div>
+        </section>
+      `;
+    }
+
     modalBody.innerHTML = `
-      <section class="gallery-block" aria-label="Project gallery">
-        <div class="gallery-block__grid">
-          <article class="gallery-item">
-            <div class="media-frame media-frame--landscape ratio-16x9"><img data-media-img src="${modalPreview}" alt="${item.title} detail preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div>
-            <p class="gallery-item__kicker">Primary</p>
-            <h3 class="gallery-item__title">${item.title}</h3>
-            <p class="gallery-item__summary">${item.summary}</p>
-          </article>
-          <article class="gallery-item">
-            <div class="media-frame media-frame--portrait ratio-3x4"><img data-media-img src="${modalPreview}" alt="${item.title} portrait crop preview" loading="lazy"><span class="media-placeholder media-placeholder--portrait" aria-hidden="true"><span class="media-placeholder__caption">Portrait</span></span><span class="accent-tick" aria-hidden="true"></span></div>
-            <p class="gallery-item__kicker">Detail</p>
-            <h3 class="gallery-item__title">Editorial Crop</h3>
-            <p class="gallery-item__summary">Reusable portrait format for project storytelling.</p>
-          </article>
-        </div>
-      </section>
-      <p>${item.summary}</p>
       <h3>Problem</h3><p>${item.sections.problem}</p>
       <h3>Constraints</h3><p>${item.sections.constraints}</p>
       <h3>Actions</h3><ul class="list">${item.sections.actions.map((x) => `<li>${x}</li>`).join('')}</ul>
@@ -780,7 +802,12 @@
     if (modalNext) modalNext.disabled = currentModalIndex >= filtered.length - 1;
 
     applyNoWidow(modalBody);
+    if (modalSummary) applyNoWidow(modalSummary);
+    if (modalHeroMedia) applyNoWidow(modalHeroMedia);
     hydrateMediaFrames(modalBody);
+    if (modalHeroMedia) hydrateMediaFrames(modalHeroMedia);
+
+    if (modalScroller) modalScroller.scrollTop = 0;
 
     setModalOpenState(true);
     modal.dataset.galleryMode = 'true';
@@ -792,6 +819,7 @@
     if (!modal) return;
     setModalOpenState(false);
     modal.removeAttribute('data-gallery-mode');
+    if (modalScroller) modalScroller.scrollTop = 0;
     unlockScroll();
     if (lastFocused) lastFocused.focus();
   }
