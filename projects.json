@@ -1,0 +1,310 @@
+{
+  "projects": [
+    {
+      "id": "program-18m-liaison",
+      "title": "$18M Multi-Building Modernization Liaison & Validation",
+      "summary": "Coordinated cross-vendor delivery across multiple buildings, translating between technical teams and stakeholders while validating milestones and readiness.",
+      "type": "case_study",
+      "collections": ["delivery", "systems"],
+      "tags": ["program", "vendor", "risk", "acceptance"],
+      "tools": ["Smartsheet", "Power BI", "Excel", "SharePoint"],
+      "date": "2025-02",
+      "sections": {
+        "problem": "Multiple workstreams had conflicting handoff criteria and fragmented communications, putting schedule confidence at risk.",
+        "constraints": "Sanitized stakeholder communications, fixed reporting cadence, and phased occupancy windows.",
+        "actions": ["Created a single validation checklist for all vendors.", "Ran weekly risk triage with issue aging dashboards.", "Introduced sign-off gates for each phase and building."],
+        "results": ["Improved acceptance pass rate from 71% to 94%.", "Reduced unresolved punch-list items by 43%.", "Kept final phases within approved tolerance windows."],
+        "next_steps": ["Automate status ingestion from vendor exports.", "Add readiness heatmap by floor and system."]
+      },
+      "artifacts": [{ "label": "Program dashboard", "path": "./assets/program-board.svg" }]
+    },
+    {
+      "id": "m365-endpoint-standard",
+      "title": "M365 & Endpoint Standardization Blueprint",
+      "summary": "Defined baseline policy packs and deployment sequences for identity, endpoint, and collaboration reliability across distributed teams.",
+      "type": "case_study",
+      "collections": ["systems"],
+      "tags": ["m365", "endpoint", "baseline", "security"],
+      "tools": ["Intune", "Entra", "Defender", "PowerShell"],
+      "date": "2024-11",
+      "sections": {
+        "problem": "Endpoint and productivity experiences were inconsistent due to policy drift and uneven provisioning.",
+        "constraints": "Legacy device mix, hybrid identity dependencies, and staggered support maturity.",
+        "actions": ["Published baseline profiles by persona.", "Built pilot ring strategy with rollback paths.", "Aligned documentation and service desk runbooks."],
+        "results": ["Provisioning time reduced by 34%.", "Policy exception requests reduced by 29%.", "Improved first-week user experience survey scores."],
+        "next_steps": ["Expand automated compliance remediation.", "Integrate release notes digest for frontline support."]
+      },
+      "artifacts": [{ "label": "Standards map", "path": "./assets/systems-standard.svg" }]
+    },
+    {
+      "id": "uc-rooms-support",
+      "title": "VoIP, UC & Rooms Support Stabilization",
+      "summary": "Improved support reliability for calling and meeting rooms through proactive health checks and standardized escalation patterns.",
+      "type": "case_study",
+      "collections": ["collab"],
+      "tags": ["uc", "rooms", "voice", "support"],
+      "tools": ["Teams Admin", "SIP Monitoring", "Ticketing"],
+      "date": "2024-09",
+      "sections": {
+        "problem": "Rooms support had frequent last-minute failures and unclear ownership in incidents.",
+        "constraints": "Mixed hardware generations and nonuniform room refresh cycles.",
+        "actions": ["Introduced daily health status checks.", "Defined priority matrix for executive and event rooms.", "Created a rapid fallback decision tree for audio paths."],
+        "results": ["Critical room failures reduced by 48%.", "Average restore time reduced by 36%.", "Higher confidence for high-visibility meetings."],
+        "next_steps": ["Automate room heartbeat reports.", "Deploy standardized spare kit per location."]
+      },
+      "artifacts": [{ "label": "Room health panel", "path": "./assets/collab-rooms.svg" }]
+    },
+    {
+      "id": "av-live-checklist",
+      "title": "AV Live Production Reliability Checklist",
+      "summary": "Template used before high-stakes streams and hybrid events to reduce avoidable production issues.",
+      "type": "template",
+      "collections": ["collab"],
+      "tags": ["av", "checklist", "events", "reliability"],
+      "tools": ["Checklist", "Signal Flow Map", "Comms Plan"],
+      "date": "2024-08",
+      "sections": {
+        "problem": "Event teams lacked a concise preflight artifact that covered technical and communication checkpoints.",
+        "constraints": "Short prep windows and rotating staffing patterns.",
+        "actions": ["Grouped checks by T-48h, T-4h, and T-30m.", "Added mandatory backup path verification.", "Included cue and contingency communication prompts."],
+        "results": ["Reduced avoidable event incidents.", "Created consistent pre-event rituals.", "Improved confidence of producers and presenters."],
+        "next_steps": ["Convert to printable one-page format.", "Add role-specific variants."]
+      },
+      "artifacts": [{ "label": "Checklist PDF", "path": "./assets/av-live-checklist.pdf" }]
+    },
+    {
+      "id": "vendor-scoring-sheet",
+      "title": "Vendor Scoring Sheet",
+      "summary": "Weighted evaluation template for comparing service providers by capability, responsiveness, and operational fit.",
+      "type": "template",
+      "collections": ["delivery"],
+      "tags": ["vendor", "evaluation", "procurement"],
+      "tools": ["Excel", "Scorecard", "Review Cadence"],
+      "date": "2024-07",
+      "sections": {
+        "problem": "Selection discussions were subjective and hard to audit.",
+        "constraints": "Need for sanitized criteria and repeatable rubric.",
+        "actions": ["Defined weighting by risk tier.", "Standardized reviewer notes schema.", "Added tie-breaker guidance for near scores."],
+        "results": ["Improved transparency in vendor decisions.", "Shortened review cycle time.", "Increased alignment across stakeholders."],
+        "next_steps": ["Connect scoring output to onboarding checklist.", "Publish annual score calibration notes."]
+      },
+      "artifacts": [{ "label": "Scoring sheet", "path": "./assets/vendor-score-sheet.pdf" }]
+    },
+    {
+      "id": "incident-comms-template",
+      "title": "Incident & Runbook Communications Template",
+      "summary": "Reusable communication structure for incident declaration, updates, and closure messages.",
+      "type": "template",
+      "collections": ["delivery", "systems"],
+      "tags": ["incident", "runbook", "communications"],
+      "tools": ["Markdown", "Status Page", "ChatOps"],
+      "date": "2024-06",
+      "sections": {
+        "problem": "Inconsistent incident updates caused confusion across technical and nontechnical audiences.",
+        "constraints": "Must remain concise while preserving timeline accuracy.",
+        "actions": ["Created plain-language message blocks.", "Mapped update frequency to severity tiers.", "Bundled runbook links for responders."],
+        "results": ["Clearer stakeholder updates.", "Reduced duplicate status requests.", "Faster closure communications."],
+        "next_steps": ["Add translated variants for global teams.", "Integrate with automated timeline exports."]
+      },
+      "artifacts": [{ "label": "Template", "path": "./assets/incident-comms-template.pdf" }]
+    },
+    {
+      "id": "endpoint-mdm-lab",
+      "title": "Endpoint / MDM Policy Lab",
+      "summary": "Lab environment for testing enrollment flows, conditional access interactions, and policy impact before production rollout.",
+      "type": "lab",
+      "collections": ["systems"],
+      "tags": ["lab", "mdm", "policy", "testing"],
+      "tools": ["Intune", "Test Devices", "Scripts"],
+      "date": "2024-05",
+      "sections": {
+        "problem": "Policy changes needed safer validation before broad deployment.",
+        "constraints": "Small device pool and limited test windows.",
+        "actions": ["Built repeatable test matrix.", "Captured side-effect notes by persona.", "Documented rollback checkpoints."],
+        "results": ["Lower production policy regressions.", "Faster confidence in rollout decisions.", "More precise support guidance."],
+        "next_steps": ["Increase device diversity in the lab.", "Automate baseline result snapshots."]
+      },
+      "artifacts": [{ "label": "Lab board", "path": "./assets/lab-endpoint.svg" }]
+    },
+    {
+      "id": "teams-rooms-lab",
+      "title": "UC / Teams Rooms Validation Lab",
+      "summary": "Small-scale reproducible room lab to verify firmware, peripheral compatibility, and room profile standards.",
+      "type": "lab",
+      "collections": ["collab"],
+      "tags": ["lab", "teams rooms", "firmware", "qa"],
+      "tools": ["Teams Rooms", "Device Manager", "Audio Analyzer"],
+      "date": "2024-05",
+      "sections": {
+        "problem": "Room releases occasionally introduced regressions not caught in staging.",
+        "constraints": "Vendors shipped updates at different cadences.",
+        "actions": ["Created release validation checklist.", "Tracked known-good hardware combinations.", "Captured AV quality metrics per update."],
+        "results": ["Fewer post-update room incidents.", "Higher predictability in refresh cycles.", "Improved support confidence."],
+        "next_steps": ["Expand acoustic test scenarios.", "Integrate firmware inventory snapshotting."]
+      },
+      "artifacts": [{ "label": "Lab photo", "path": "./assets/lab-uc.svg" }]
+    },
+    {
+      "id": "photo-contact-sheet",
+      "title": "Photography Contact Sheet",
+      "summary": "Curated grid of editorial and environmental photo studies used in creative and brand storytelling workflows.",
+      "type": "gallery",
+      "collections": ["creative"],
+      "tags": ["photo", "gallery", "composition"],
+      "tools": ["Lightroom", "Photoshop", "Lens Kit"],
+      "date": "2024-10",
+      "sections": {
+        "problem": "Needed a concise visual archive for selecting style directions.",
+        "constraints": "Placeholder samples only; no client-identifiable visuals.",
+        "actions": ["Grouped by lighting profile and mood.", "Added quick notes for tone and framing.", "Exported web-friendly contact sheet."],
+        "results": ["Faster creative alignment.", "Improved pre-production direction.", "Reusable mood references."],
+        "next_steps": ["Add black-and-white set.", "Include portrait crop variants."]
+      },
+      "artifacts": [{ "label": "Gallery", "path": "./assets/gallery-photo.svg" }]
+    },
+    {
+      "id": "video-highlights",
+      "title": "Video & Editing Highlights Reel",
+      "summary": "Shot list snapshots and sequence notes showing pacing, transitions, and visual narrative rhythm.",
+      "type": "gallery",
+      "collections": ["creative"],
+      "tags": ["video", "editing", "story"],
+      "tools": ["Premiere Pro", "DaVinci Resolve", "After Effects"],
+      "date": "2024-10",
+      "sections": {
+        "problem": "Needed a portable highlights package for showcasing editing style.",
+        "constraints": "Sanitized footage and royalty-free placeholders only.",
+        "actions": ["Selected short scenes by energy profile.", "Annotated rhythm and cut intent.", "Exported storyboard stills for web."],
+        "results": ["Clearer demonstration of style.", "Better fit discussions for creative briefs.", "Reusable pitch material."],
+        "next_steps": ["Add motion graphics variant.", "Create subtitle-ready export set."]
+      },
+      "artifacts": [{ "label": "Highlights", "path": "./assets/gallery-video.svg" }]
+    },
+    {
+      "id": "incident-writing-sample",
+      "title": "How I Communicate During Incidents",
+      "summary": "Writing sample on clarity-first incident communication and how to keep updates useful under pressure.",
+      "type": "writing",
+      "collections": ["delivery"],
+      "tags": ["writing", "incident", "leadership"],
+      "tools": ["Notion", "Markdown", "Editorial Review"],
+      "date": "2024-04",
+      "sections": {
+        "problem": "Teams asked for a practical framework on incident language and update cadence.",
+        "constraints": "Must be concise and easy to reuse in real operations.",
+        "actions": ["Outlined update principles with examples.", "Added sample executive summaries.", "Included closure retrospective prompts."],
+        "results": ["Improved message consistency.", "Reduced ambiguity during outages.", "Supported calmer stakeholder communications."],
+        "next_steps": ["Add short-form checklist version.", "Publish companion template pack."]
+      },
+      "artifacts": [{ "label": "Writing PDF", "path": "./assets/writing-incident.pdf" }]
+    },
+    {
+      "id": "runbook-library",
+      "title": "Operations Runbook Library",
+      "summary": "Structured template library for recurring ops workflows with owner fields, trigger conditions, and escalation paths.",
+      "type": "template",
+      "collections": ["delivery", "systems"],
+      "tags": ["ops", "runbook", "standardization"],
+      "tools": ["Confluence", "Versioning", "Checklist"],
+      "date": "2024-03",
+      "sections": {
+        "problem": "Runbooks varied in quality and made handoffs inconsistent.",
+        "constraints": "Need lightweight format that teams would actually maintain.",
+        "actions": ["Defined minimum viable runbook schema.", "Added review cadence and stale-content flags.", "Provided starter templates by incident type."],
+        "results": ["Higher runbook adoption.", "Cleaner incident handoffs.", "Reduced duplicated process writing."],
+        "next_steps": ["Map runbooks to service catalog.", "Automate stale-runbook reminders."]
+      },
+      "artifacts": [{ "label": "Runbook sample", "path": "./assets/template-runbook.svg" }]
+    },
+    {
+      "id": "service-intake-template",
+      "title": "Service Intake & Prioritization Template",
+      "summary": "Single intake form and triage model for categorizing requests by urgency, impact, and required dependencies.",
+      "type": "template",
+      "collections": ["delivery"],
+      "tags": ["intake", "triage", "service"],
+      "tools": ["Forms", "Kanban", "Excel"],
+      "date": "2024-02",
+      "sections": {
+        "problem": "Incoming requests lacked consistent details, slowing planning and execution.",
+        "constraints": "Needed quick adoption with minimal training overhead.",
+        "actions": ["Standardized intake questions.", "Created impact-urgency scoring matrix.", "Added intake-to-workflow mapping guidance."],
+        "results": ["Clearer scoping at intake.", "Less back-and-forth for clarifications.", "Improved prioritization transparency."],
+        "next_steps": ["Add dependency visualization.", "Integrate weekly intake analytics."]
+      },
+      "artifacts": [{ "label": "Intake board", "path": "./assets/template-intake.svg" }]
+    },
+    {
+      "id": "automation-scripting-lab",
+      "title": "Automation Scripting Lab",
+      "summary": "Prototype scripts for repeated endpoint and reporting tasks, with guardrails for dry-run validation.",
+      "type": "lab",
+      "collections": ["systems", "delivery"],
+      "tags": ["automation", "scripting", "ops"],
+      "tools": ["PowerShell", "Bash", "Git"],
+      "date": "2024-01",
+      "sections": {
+        "problem": "Manual repetitive tasks were consuming frontline support capacity.",
+        "constraints": "Needed safe rollback and transparent change logs.",
+        "actions": ["Built script templates with dry-run mode.", "Added logging and rollback instructions.", "Documented peer review checklist for scripts."],
+        "results": ["Reduced repetitive manual effort.", "Improved script reliability and confidence.", "Faster turnaround on common tasks."],
+        "next_steps": ["Create central script catalog.", "Automate lint and style checks for scripts."]
+      },
+      "artifacts": [{ "label": "Automation lab", "path": "./assets/lab-automation.svg" }]
+    },
+    {
+      "id": "brand-system-web-refresh",
+      "title": "Brand System Web Refresh",
+      "summary": "Refined layout cadence and type hierarchy for a cleaner, editorial web experience across portfolio content.",
+      "type": "case_study",
+      "collections": ["creative"],
+      "tags": ["design", "brand", "web"],
+      "tools": ["Figma", "CSS", "Accessibility Review"],
+      "date": "2023-12",
+      "sections": {
+        "problem": "Visual language was inconsistent and diluted content priority.",
+        "constraints": "Retain minimalist palette and avoid decorative clutter.",
+        "actions": ["Defined spacing and section rhythm tokens.", "Updated card and hero components.", "Introduced restrained accent system."],
+        "results": ["Stronger visual consistency.", "Better readability and scanability.", "Improved perceived quality of work samples."],
+        "next_steps": ["Add print-friendly style layer.", "Expand motion guidelines."]
+      },
+      "artifacts": [{ "label": "Design spread", "path": "./assets/creative-brand.svg" }]
+    },
+    {
+      "id": "hybrid-event-signal-map",
+      "title": "Hybrid Event Signal Map",
+      "summary": "Technical signal-flow diagram and staffing plan for hybrid events with backup paths and fallback assignments.",
+      "type": "case_study",
+      "collections": ["collab", "delivery"],
+      "tags": ["hybrid", "event", "signal flow"],
+      "tools": ["Visio", "Cue Sheets", "Intercom"],
+      "date": "2023-11",
+      "sections": {
+        "problem": "Complex hybrid events were vulnerable to single-path failures.",
+        "constraints": "Tight change windows and multiple third-party contributors.",
+        "actions": ["Documented primary and backup signal routes.", "Defined operator role cards.", "Rehearsed fallback transitions with timed drills."],
+        "results": ["More resilient event execution.", "Fewer surprise escalations.", "Improved handoff clarity across crews."],
+        "next_steps": ["Embed run-of-show milestones into alerting.", "Capture post-event reliability metrics."]
+      },
+      "artifacts": [{ "label": "Signal map", "path": "./assets/collab-signal.svg" }]
+    },
+    {
+      "id": "knowledge-base-style-guide",
+      "title": "Knowledge Base Writing Style Guide",
+      "summary": "A concise writing guide for support and engineering docs, focused on tone, structure, and maintenance discipline.",
+      "type": "writing",
+      "collections": ["systems", "delivery"],
+      "tags": ["writing", "knowledge base", "docs"],
+      "tools": ["Docs Portal", "Editorial QA", "Templates"],
+      "date": "2023-10",
+      "sections": {
+        "problem": "Documentation quality varied widely across contributors.",
+        "constraints": "Needed fast contributor onboarding with minimal governance overhead.",
+        "actions": ["Published heading and content patterns.", "Added examples for troubleshooting format.", "Defined review and archival rules."],
+        "results": ["More consistent support documentation.", "Faster article publishing workflow.", "Better reader comprehension feedback."],
+        "next_steps": ["Add quick-start checklist for new authors.", "Integrate style linting hints."]
+      },
+      "artifacts": [{ "label": "Style guide", "path": "./assets/writing-style.svg" }]
+    }
+  ]
+}

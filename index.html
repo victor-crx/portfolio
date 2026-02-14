@@ -1,12 +1,87 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Victor — Portfolio</title>
+  <title>Victor Lane — Portfolio</title>
+  <meta name="description" content="Editorial-style portfolio spanning systems, collaboration, delivery, and creative work." />
+  <meta property="og:title" content="Victor Lane Portfolio" />
+  <meta property="og:description" content="Systems, collaboration, delivery, and creative portfolio collections." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-<body style="font-family:system-ui;padding:40px;">
-  <h1>Portfolio coming soon</h1>
-  <p>Deployed successfully.</p>
+<body data-default-collection="all">
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="./">Victor Lane</a>
+      <button class="nav-toggle" aria-label="Toggle navigation">Menu</button>
+      <ul class="nav-links">
+        <li><a href="./">Home</a></li><li><a href="./work/">Work</a></li><li><a href="./systems/">Systems</a></li><li><a href="./collab/">Collab</a></li><li><a href="./delivery/">Delivery</a></li><li><a href="./creative/">Creative</a></li><li><a href="./about/">About</a></li><li><a href="./resume/">Resume</a></li><li><a href="./contact/">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container reveal">
+      <p class="overline">Portfolio Collection</p>
+      <h1>Systems clarity, collaborative execution, elegant outcomes.</h1>
+      <p>Brochure-inspired portfolio design with a technical backbone, curated across Systems, Collaboration & Live, Delivery, and Creative lanes.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="./work/">View Work</a>
+        <a class="btn btn-secondary" href="./contact/">Start a Project</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal"><h2>Collections designed to adapt to every lane.</h2><div class="double-stripe"></div><p>Use one site with different collection focus without redesigning. Each lane maps to the same structured dataset and interface components.</p></div>
+      <div class="card-grid" data-project-grid></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal"><h2>Featured highlight</h2><div class="double-stripe"></div></div>
+      <div class="feature-highlight reveal">
+        <img src="./assets/feature-highlight.svg" alt="Program highlight illustration" />
+        <div class="feature-copy">
+          <p class="overline">Signature Program</p>
+          <h3 class="caption-title">$18M multi-building modernization</h3>
+          <p class="caption-summary">Technical liaison and vendor coordination across phased deployments, with validation gates and readiness scorecards that kept delivery quality visible and measurable.</p>
+          <a class="btn btn-primary" href="./work/">Explore case study set</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section quote-band">
+    <div class="container">
+      <div class="section-head reveal"><h2>In the Press / Testimonials</h2><div class="double-stripe"></div></div>
+      <div class="quote-grid reveal">
+        <article class="quote-card"><blockquote>“Operationally calm, technically rigorous, and always clear in communication.”</blockquote><cite>— Program Sponsor</cite></article>
+        <article class="quote-card"><blockquote>“Turned fragmented handoffs into a reliable delivery rhythm across teams.”</blockquote><cite>— Delivery Partner</cite></article>
+        <article class="quote-card"><blockquote>“Balances production detail and strategic outcomes with uncommon consistency.”</blockquote><cite>— Collaboration Lead</cite></article>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-block"><h4>Victor Lane</h4><p>Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.</p></div>
+      <div class="footer-block"><h4>Collections</h4><p><a href="./systems/">Systems</a><br><a href="./collab/">Collab</a><br><a href="./delivery/">Delivery</a><br><a href="./creative/">Creative</a></p></div>
+      <div class="footer-block"><h4>Pages</h4><p><a href="./about/">About</a><br><a href="./resume/">Resume</a><br><a href="./contact/">Contact</a></p></div>
+      <div class="footer-block"><h4>Contact</h4><p>Email: hello@example.com<br>Location: Available remote / onsite<br><a href="./assets/resume-placeholder.pdf">Download Resume PDF</a></p></div>
+    </div>
+  </footer>
+
+  <div class="modal" data-modal aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-panel">
+      <div class="modal-head"><h2 class="modal-title" id="modal-title" data-modal-title></h2><button class="modal-close" data-modal-close aria-label="Close">×</button></div>
+      <div class="modal-body"><p class="meta-line" data-modal-meta></p><div data-modal-body></div></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>
