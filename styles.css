@@ -588,6 +588,7 @@ img { max-width: 100%; display: block; }
   left: 0;
   right: 0;
   z-index: 9999;
+  z-index: 32;
   border: 1px solid rgba(245, 245, 245, 0.12);
   border-radius: 8px;
   background: #0b0b0d;
