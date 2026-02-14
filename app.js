@@ -1,12 +1,31 @@
 (function () {
+  const header = document.querySelector('.site-header');
   const navToggle = document.querySelector('.nav-toggle');
   const navLinks = document.querySelector('.nav-links');
+
+  const firstMain = document.querySelector('main') || document.querySelector('section');
+  if (firstMain && !firstMain.id) firstMain.id = 'main-content';
+  if (!document.querySelector('.skip-link') && firstMain) {
+    const skip = document.createElement('a');
+    skip.className = 'skip-link';
+    skip.href = '#main-content';
+    skip.textContent = 'Skip to content';
+    document.body.insertBefore(skip, document.body.firstChild);
+  }
+
   if (navToggle && navLinks) {
     navToggle.addEventListener('click', () => {
       const isOpen = navLinks.classList.toggle('open');
       navToggle.setAttribute('aria-expanded', String(isOpen));
     });
   }
+
+  function onScroll() {
+    if (!header) return;
+    header.classList.toggle('scrolled', window.scrollY > 12);
+  }
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
 
   const path = window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`;
   document.querySelectorAll('.nav-links a').forEach((link) => {
@@ -48,9 +67,7 @@
   let filtered = [];
   let lastFocused;
 
-  const jsonPath = '/projects.json';
-
-  fetch(jsonPath)
+  fetch('/projects.json')
     .then((r) => r.json())
     .then((data) => {
       projects = data.projects || [];
@@ -79,29 +96,32 @@
       grid.innerHTML = '<p>No matching projects. Try clearing one or more filters.</p>';
       return;
     }
-    grid.innerHTML = items.map((item) => `
+
+    grid.innerHTML = items.map((item) => {
+      const preview = buildPlaceholder(item);
+      return `
       <article class="project-card reveal">
-        <button type="button" data-open-id="${item.id}" style="all:unset;cursor:pointer;display:block;width:100%;">
-          <img class="project-image" src="${resolveAsset(item)}" alt="${item.title} preview" loading="lazy">
+        <button type="button" class="project-tile" data-open-id="${item.id}">
+          <img class="project-image" src="${preview}" alt="${item.title} abstract preview" loading="lazy">
           <div class="caption-bar">
-            <div class="caption-meta">${item.type.replace('_', ' • ')} • ${item.date}</div>
+            <div class="caption-meta">${item.type.replace('_', ' ')} • ${item.date}</div>
             <h3 class="caption-title">${item.title}</h3>
             <p class="caption-summary">${item.summary}</p>
           </div>
         </button>
-      </article>
-    `).join('');
+      </article>`;
+    }).join('');
+
     document.querySelectorAll('[data-open-id]').forEach((btn) => {
       btn.addEventListener('click', () => openModal(btn.dataset.openId));
     });
     document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
   }
 
-  function resolveAsset(item) {
-    const first = item.artifacts && item.artifacts[0] ? item.artifacts[0].path : '/assets/project-placeholder.svg';
-    if (first.startsWith('./assets')) return first.replace('./assets', '/assets');
-    if (first.startsWith('../assets')) return first.replace('../assets', '/assets');
-    return first;
+  function buildPlaceholder(item) {
+    const safeType = (item.type || 'project').replace(/[^a-z_]/gi, '');
+    const label = encodeURIComponent((item.type || 'Project').replace('_', ' ').toUpperCase());
+    return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="${safeType} placeholder"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16161d"/><stop offset="100%" stop-color="#0f0f13"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><g opacity="0.6"><rect x="64" y="84" width="672" height="2" fill="#C1121F"/><rect x="64" y="102" width="420" height="2" fill="rgba(245,245,245,0.45)"/></g><g opacity="0.3"><circle cx="640" cy="180" r="120" fill="#C1121F"/></g><text x="64" y="540" fill="rgba(245,245,245,0.75)" font-family="Inter,Arial,sans-serif" font-size="28" letter-spacing="5">${decodeURIComponent(label)}</text></svg>`)}`;
   }
 
   function openModal(id) {
@@ -134,7 +154,7 @@
   }
 
   function trapFocus(event) {
-    if (!modal.classList.contains('open') || event.key !== 'Tab') return;
+    if (!modal || !modal.classList.contains('open') || event.key !== 'Tab') return;
     const focusables = modal.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
     if (!focusables.length) return;
     const first = focusables[0];
