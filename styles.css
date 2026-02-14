@@ -57,6 +57,8 @@
 html, body { margin: 0; padding: 0; }
 html {
   scrollbar-gutter: stable;
+  opacity: 1;
+  transform: none;
 }
 body {
   font-family: var(--font-sans);
@@ -71,6 +73,8 @@ body {
     radial-gradient(circle at 14% 10%, rgba(193, 18, 31, 0.06), transparent 30%),
     radial-gradient(circle at 90% 5%, rgba(255, 255, 255, 0.035), transparent 28%),
     linear-gradient(170deg, #0b0b0d 0%, #0b0b0d 55%, #0d0d10 100%);
+  opacity: 1;
+  transform: none;
 }
 
 input,
@@ -87,6 +91,11 @@ body.page-leave {
   opacity: 0;
   transform: translateY(5px);
   transition: opacity var(--dur-med) var(--ease-standard), transform var(--dur-med) var(--ease-standard);
+}
+
+html.bfcache-restore body {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 @keyframes page-enter {

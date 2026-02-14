@@ -199,32 +199,70 @@
 
   const customSelects = [];
 
-  function resetTransientUI() {
-    const transitionClasses = ['page-enter', 'page-leave'];
-
-    transitionClasses.forEach((className) => {
-      document.documentElement.classList.remove(className);
-      document.body.classList.remove(className);
+  function clearTransientClasses(node) {
+    if (!node) return;
+    const classNames = Array.from(node.classList);
+    classNames.forEach((className) => {
+      const lowered = className.toLowerCase();
+      if (
+        lowered.includes('leave')
+        || lowered.includes('enter')
+        || lowered.includes('loading')
+        || lowered.includes('transition')
+        || lowered.includes('nav-open')
+        || lowered.includes('menu-open')
+        || lowered.includes('modal-open')
+      ) {
+        node.classList.remove(className);
+      }
     });
+    node.classList.remove('page-enter', 'page-leave', 'loading', 'transition', 'nav-open', 'menu-open', 'modal-open');
+  }
+
+  function hardResetUI(reason) {
+    void reason;
+    clearTransientClasses(document.documentElement);
+    clearTransientClasses(document.body);
 
     ['opacity', 'transform'].forEach((property) => {
       document.documentElement.style.removeProperty(property);
       document.body.style.removeProperty(property);
     });
 
+    document.documentElement.style.opacity = '1';
+    document.documentElement.style.transform = 'none';
+    document.body.style.opacity = '1';
+    document.body.style.transform = 'none';
+
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+
     if (navLinks) navLinks.classList.remove('open');
     if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
-    if (navBackdrop) navBackdrop.classList.remove('open');
+    if (navBackdrop) {
+      navBackdrop.classList.remove('open');
+      navBackdrop.style.removeProperty('display');
+    }
 
     if (modal) {
       modal.classList.remove('open');
       modal.setAttribute('aria-hidden', 'true');
+      modal.style.removeProperty('display');
     }
 
     closeAllCustomSelects();
 
     scrollLockCount = 0;
-    document.body.style.overflow = '';
+  }
+
+  function clearPageLeavingState() {
+    clearTransientClasses(document.documentElement);
+    clearTransientClasses(document.body);
+    document.documentElement.style.removeProperty('opacity');
+    document.documentElement.style.removeProperty('transform');
+    document.body.style.removeProperty('opacity');
+    document.body.style.removeProperty('transform');
+    document.body.style.opacity = '1';
   }
 
   function closeAllCustomSelects(except) {
@@ -386,11 +424,25 @@
   });
 
   window.addEventListener('pageshow', () => {
-    resetTransientUI();
+    document.documentElement.classList.add('bfcache-restore');
+    hardResetUI('pageshow');
+    requestAnimationFrame(() => hardResetUI('pageshow-rAF'));
+    window.setTimeout(() => hardResetUI('pageshow-timeout'), 50);
+    window.setTimeout(() => {
+      document.documentElement.classList.remove('bfcache-restore');
+    }, 200);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') hardResetUI('visibilitychange');
+  });
+
+  window.addEventListener('popstate', () => {
+    hardResetUI('popstate');
   });
 
   window.addEventListener('pagehide', () => {
-    resetTransientUI();
+    clearPageLeavingState();
   });
 
   const projectsUrl = '/projects.json';
