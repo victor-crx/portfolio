@@ -160,7 +160,8 @@
         "results": ["Faster creative alignment.", "Improved pre-production direction.", "Reusable mood references."],
         "next_steps": ["Add black-and-white set.", "Include portrait crop variants."]
       },
-      "artifacts": [{ "label": "Gallery", "path": "./assets/gallery-photo.svg" }]
+      "artifacts": [{ "label": "Gallery", "path": "./assets/gallery-photo.svg" }],
+      "images": ["./assets/gallery-photo.svg", "./assets/creative-brand.svg", "./assets/feature-highlight.svg", "./assets/hero-luxury.svg", "./assets/writing-style.svg"]
     },
     {
       "id": "video-highlights",
@@ -178,7 +179,8 @@
         "results": ["Clearer demonstration of style.", "Better fit discussions for creative briefs.", "Reusable pitch material."],
         "next_steps": ["Add motion graphics variant.", "Create subtitle-ready export set."]
       },
-      "artifacts": [{ "label": "Highlights", "path": "./assets/gallery-video.svg" }]
+      "artifacts": [{ "label": "Highlights", "path": "./assets/gallery-video.svg" }],
+      "images": ["./assets/gallery-video.svg", "./assets/press-overlay.svg", "./assets/collab-signal.svg", "./assets/program-board.svg", "./assets/creative-brand.svg"]
     },
     {
       "id": "incident-writing-sample",
