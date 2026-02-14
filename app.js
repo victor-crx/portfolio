@@ -15,12 +15,24 @@
 
   let navBackdrop;
   let navLastFocused;
+  let scrollLockCount = 0;
+
+  function lockScroll() {
+    scrollLockCount += 1;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function unlockScroll() {
+    scrollLockCount = Math.max(0, scrollLockCount - 1);
+    if (scrollLockCount === 0) document.body.style.overflow = '';
+  }
+
   function closeNav(returnFocus = true) {
     if (!navLinks || !navToggle) return;
     navLinks.classList.remove('open');
     navToggle.setAttribute('aria-expanded', 'false');
     if (navBackdrop) navBackdrop.classList.remove('open');
-    document.body.style.overflow = '';
+    unlockScroll();
     if (returnFocus && navLastFocused) navLastFocused.focus();
   }
 
@@ -38,7 +50,7 @@
 
       if (isOpen) {
         navLastFocused = document.activeElement;
-        document.body.style.overflow = 'hidden';
+        lockScroll();
         const firstLink = navLinks.querySelector('a');
         if (firstLink) firstLink.focus();
       } else {
@@ -121,12 +133,16 @@
     if (normalizedPath === normalized) link.classList.add('active');
   });
 
-  const reveal = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) entry.target.classList.add('visible');
-    });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
+  if (prefersReducedMotion()) {
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+  } else {
+    const reveal = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
+  }
 
 
   function applyNoWidow(scope = document) {
@@ -436,14 +452,14 @@
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     modalClose.focus();
-    document.body.style.overflow = 'hidden';
+    lockScroll();
   }
 
   function closeModal() {
     if (!modal) return;
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    unlockScroll();
     if (lastFocused) lastFocused.focus();
   }
 
