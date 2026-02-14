@@ -4,15 +4,28 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Work — Victor Lane</title>
-  <meta name="description" content="Master portfolio grid with filtering by collection, type, tag, and search." />
-  <link rel="stylesheet" href="../styles.css" />
+  <meta name="description" content="Master portfolio grid with filtering by collection, type, and search." />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body data-default-collection="all">
-  <header class="site-header"><div class="container nav-wrap"><a class="brand" href="../">Victor Lane</a><button class="nav-toggle" aria-label="Toggle navigation">Menu</button><ul class="nav-links"><li><a href="../">Home</a></li><li><a href="../work/">Work</a></li><li><a href="../systems/">Systems</a></li><li><a href="../collab/">Collab</a></li><li><a href="../delivery/">Delivery</a></li><li><a href="../creative/">Creative</a></li><li><a href="../about/">About</a></li><li><a href="../resume/">Resume</a></li><li><a href="../contact/">Contact</a></li></ul></div></header>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="/" aria-label="Victor Lane home">
+        <img src="/assets/logo.svg" alt="Victor Lane" />
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <ul class="nav-links" id="site-nav">
+        <li><a href="/">Home</a></li>
+        <li><a href="/work/">Work</a></li>
+        <li><a href="/about/">About</a></li>
+        <li><a href="/contact/">Contact</a></li>
+      </ul>
+    </div>
+  </header>
 
   <main class="section">
     <div class="container">
-      <div class="section-head reveal"><h2>Master Work Grid</h2><div class="double-stripe"></div><p>Filter by collection lane, project type, tags, and search text. Open any card for full problem/constraints/actions/results details.</p><p data-results-count class="meta-line"></p></div>
+      <div class="section-head reveal"><h2>Master Work Grid</h2><div class="double-stripe"></div><p>Filter by collection lane, project type, and search text. Open any card for full problem/constraints/actions/results details.</p><p data-results-count class="meta-line"></p></div>
 
       <section class="filters reveal" aria-label="Filters">
         <div class="filter-row">
@@ -33,8 +46,7 @@
           </select>
           <input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" />
         </div>
-        <div class="chips" data-tag-chips></div>
-      </section>
+</section>
 
       <section class="section" style="padding:1.5rem 0 0;">
         <div class="card-grid" data-project-grid></div>
@@ -42,9 +54,9 @@
     </div>
   </main>
 
-  <footer class="footer"><div class="container footer-grid"><div class="footer-block"><h4>Portfolio</h4><p>Reusable data-driven structure for multiple lanes.</p></div><div class="footer-block"><h4>Collections</h4><p><a href="../systems/">Systems</a><br><a href="../collab/">Collab</a><br><a href="../delivery/">Delivery</a><br><a href="../creative/">Creative</a></p></div><div class="footer-block"><h4>Resources</h4><p><a href="../resume/">Resume</a><br><a href="../contact/">Contact</a></p></div><div class="footer-block"><h4>Download</h4><p><a href="../assets/resume-placeholder.pdf">Resume PDF</a></p></div></div></footer>
+  <footer class="footer"><div class="container footer-grid"><div class="footer-block"><h4>Portfolio</h4><p>Reusable data-driven structure for multiple lanes.</p></div><div class="footer-block"><h4>Collections</h4><p><a href="../systems/">Systems</a><br><a href="../collab/">Collab</a><br><a href="../delivery/">Delivery</a><br><a href="../creative/">Creative</a></p></div><div class="footer-block"><h4>Resources</h4><p><a href="../resume/">Resume</a><br><a href="../contact/">Contact</a></p></div><div class="footer-block"><h4>Download</h4><p><a href="/assets/resume-placeholder.pdf">Resume PDF</a></p></div></div></footer>
 
   <div class="modal" data-modal aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-panel"><div class="modal-head"><h2 class="modal-title" id="modal-title" data-modal-title></h2><button class="modal-close" data-modal-close aria-label="Close">×</button></div><div class="modal-body"><p class="meta-line" data-modal-meta></p><div data-modal-body></div></div></div></div>
-  <script src="../app.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

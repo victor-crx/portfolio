@@ -8,15 +8,20 @@
   <meta property="og:title" content="Victor Lane Portfolio" />
   <meta property="og:description" content="Systems, collaboration, delivery, and creative portfolio collections." />
   <meta property="og:type" content="website" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body data-default-collection="all">
   <header class="site-header">
     <div class="container nav-wrap">
-      <a class="brand" href="./">Victor Lane</a>
-      <button class="nav-toggle" aria-label="Toggle navigation">Menu</button>
-      <ul class="nav-links">
-        <li><a href="./">Home</a></li><li><a href="./work/">Work</a></li><li><a href="./systems/">Systems</a></li><li><a href="./collab/">Collab</a></li><li><a href="./delivery/">Delivery</a></li><li><a href="./creative/">Creative</a></li><li><a href="./about/">About</a></li><li><a href="./resume/">Resume</a></li><li><a href="./contact/">Contact</a></li>
+      <a class="brand" href="/" aria-label="Victor Lane home">
+        <img src="/assets/logo.svg" alt="Victor Lane" />
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <ul class="nav-links" id="site-nav">
+        <li><a href="/">Home</a></li>
+        <li><a href="/work/">Work</a></li>
+        <li><a href="/about/">About</a></li>
+        <li><a href="/contact/">Contact</a></li>
       </ul>
     </div>
   </header>
@@ -44,7 +49,7 @@
     <div class="container">
       <div class="section-head reveal"><h2>Featured highlight</h2><div class="double-stripe"></div></div>
       <div class="feature-highlight reveal">
-        <img src="./assets/feature-highlight.svg" alt="Program highlight illustration" />
+        <img src="/assets/feature-highlight.svg" alt="Program highlight illustration" />
         <div class="feature-copy">
           <p class="overline">Signature Program</p>
           <h3 class="caption-title">$18M multi-building modernization</h3>
@@ -71,7 +76,7 @@
       <div class="footer-block"><h4>Victor Lane</h4><p>Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.</p></div>
       <div class="footer-block"><h4>Collections</h4><p><a href="./systems/">Systems</a><br><a href="./collab/">Collab</a><br><a href="./delivery/">Delivery</a><br><a href="./creative/">Creative</a></p></div>
       <div class="footer-block"><h4>Pages</h4><p><a href="./about/">About</a><br><a href="./resume/">Resume</a><br><a href="./contact/">Contact</a></p></div>
-      <div class="footer-block"><h4>Contact</h4><p>Email: hello@example.com<br>Location: Available remote / onsite<br><a href="./assets/resume-placeholder.pdf">Download Resume PDF</a></p></div>
+      <div class="footer-block"><h4>Contact</h4><p>Email: hello@example.com<br>Location: Available remote / onsite<br><a href="/assets/resume-placeholder.pdf">Download Resume PDF</a></p></div>
     </div>
   </footer>
 
@@ -82,6 +87,6 @@
     </div>
   </div>
 
-  <script src="./app.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>
