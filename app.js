@@ -402,12 +402,13 @@
   let currentModalIndex = -1;
   let currentMediaIndex = 0;
   let lastFocused;
-  const MODAL_HISTORY_KEY = 'portfolioModal';
-  let suppressNextPopstateClose = false;
+  const MODAL_HASH_PREFIX = '#p=';
+  const BIND_GUARD_KEY = '__portfolioWorkBindings';
 
   function setModalOpenState(isOpen) {
     if (!modal) return;
     modal.classList.toggle('open', isOpen);
+    document.body.classList.toggle('is-modal-open', isOpen);
     modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     setElementInert(modal, !isOpen);
     setFocusableState(modal, !isOpen);
@@ -424,14 +425,15 @@
 
   function getModalImages(item) {
     if (Array.isArray(item.images) && item.images.length) {
-      return item.images.filter((src) => typeof src === 'string' && src.trim()).map((src) => resolveAssetPath(src.trim()));
+      const valid = item.images.filter((src) => typeof src === 'string' && src.trim()).map((src) => resolveAssetPath(src.trim()));
+      if (valid.length) return { images: valid, hasGallery: true };
     }
-    return [buildPlaceholder(item)];
+    return { images: [buildPlaceholder(item)], hasGallery: false };
   }
 
   function renderModalGallery(item, mediaIndex = 0) {
     if (!modalHeroMedia) return;
-    const galleryImages = getModalImages(item);
+    const { images: galleryImages, hasGallery } = getModalImages(item);
     const safeIndex = Math.min(Math.max(mediaIndex, 0), galleryImages.length - 1);
     currentMediaIndex = safeIndex;
 
@@ -440,28 +442,40 @@
       return `<button type="button" class="modal-thumb${selected ? ' is-active' : ''}" data-gallery-thumb="${index}" aria-label="Show image ${index + 1}" aria-pressed="${selected ? 'true' : 'false'}"><img data-media-img src="${src}" alt="${item.title} thumbnail ${index + 1}" loading="lazy"></button>`;
     }).join('');
 
+    const showThumbs = hasGallery && galleryImages.length > 1;
+
     modalHeroMedia.innerHTML = `
       <section class="modal-gallery" aria-label="Project gallery">
         <div class="media-frame media-frame--landscape ratio-16x9 modal-gallery__hero"><img data-media-img src="${galleryImages[safeIndex]}" alt="${item.title} detail preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div>
-        <div class="modal-gallery__thumbs" role="list">${thumbs}</div>
+        ${showThumbs ? `<div class="modal-gallery__thumbs" role="list">${thumbs}</div>` : ''}
       </section>
     `;
+
+    if (modalPrev) modalPrev.disabled = !showThumbs;
+    if (modalNext) modalNext.disabled = !showThumbs;
   }
 
-  function syncModalHistory(opening) {
-    if (opening) {
-      const state = window.history.state || {};
-      if (!state[MODAL_HISTORY_KEY]) {
-        window.history.pushState({ ...state, [MODAL_HISTORY_KEY]: true }, '', window.location.href);
-      }
-      return;
+  function parseModalHash() {
+    if (!window.location.hash.startsWith(MODAL_HASH_PREFIX)) return '';
+    const rawId = window.location.hash.slice(MODAL_HASH_PREFIX.length);
+    try {
+      return decodeURIComponent(rawId);
+    } catch (error) {
+      return rawId;
     }
+  }
 
-    const state = window.history.state || {};
-    if (state[MODAL_HISTORY_KEY]) {
-      suppressNextPopstateClose = true;
-      window.history.back();
-    }
+  function syncHashForModal(item) {
+    if (!item || !item.id) return;
+    const nextHash = `${MODAL_HASH_PREFIX}${encodeURIComponent(item.id)}`;
+    if (window.location.hash === nextHash) return;
+    window.location.hash = nextHash;
+  }
+
+  function clearModalHash() {
+    if (!window.location.hash.startsWith(MODAL_HASH_PREFIX)) return;
+    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState(window.history.state, '', cleanUrl);
   }
 
   const customSelects = [];
@@ -521,8 +535,8 @@
 
     currentModalIndex = -1;
     currentMediaIndex = 0;
-    suppressNextPopstateClose = false;
     scrollLockCount = 0;
+    clearModalHash();
   }
 
   function clearPageLeavingState() {
@@ -716,23 +730,10 @@
     });
   });
 
-  window.addEventListener('pageshow', (event) => {
-    document.documentElement.classList.add('bfcache-restore');
-    hardResetUI(event.persisted ? 'pageshow-bfcache' : 'pageshow');
-    requestAnimationFrame(() => hardResetUI('pageshow-rAF'));
-    window.setTimeout(() => hardResetUI('pageshow-timeout'), 50);
-    window.setTimeout(() => {
-      document.documentElement.classList.remove('bfcache-restore');
-    }, 200);
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') hardResetUI('visibilitychange');
-  });
-
-  window.addEventListener('pagehide', () => {
+  function safeRehydrateUI(reason) {
     clearPageLeavingState();
-  });
+    hardResetUI(reason);
+  }
 
   const projectsUrl = '/projects.json';
 
@@ -764,6 +765,7 @@
 
     renderCards(filtered);
     if (countNode) countNode.textContent = `${filtered.length} projects`;
+    if (parseModalHash()) syncModalFromHash();
   }
 
   function renderCards(items) {
@@ -807,7 +809,8 @@
     openModalAtIndex(currentModalIndex);
   }
 
-  function openModalAtIndex(index) {
+  function openModalAtIndex(index, options = {}) {
+    const { syncHash = true } = options;
     if (!modal || index < 0 || index >= filtered.length) return;
     const item = filtered[index];
     if (!item) return;
@@ -828,9 +831,6 @@
       <h3>Tools</h3><p>${item.tools.join(', ')}</p>
     `;
 
-    if (modalPrev) modalPrev.disabled = currentModalIndex <= 0;
-    if (modalNext) modalNext.disabled = currentModalIndex >= filtered.length - 1;
-
     applyNoWidow(modalBody);
     if (modalSummary) applyNoWidow(modalSummary);
     if (modalHeroMedia) applyNoWidow(modalHeroMedia);
@@ -843,26 +843,31 @@
     modal.dataset.galleryMode = 'true';
     modalClose.focus();
     lockScroll();
-    syncModalHistory(true);
+    if (syncHash) syncHashForModal(item);
   }
 
   function closeModal(options = {}) {
-    const { fromPopstate = false } = options;
+    const { syncHash = true } = options;
     if (!modal) return;
     const wasOpen = modal.classList.contains('open');
     setModalOpenState(false);
     modal.removeAttribute('data-gallery-mode');
     if (modalScroller) modalScroller.scrollTop = 0;
     unlockScroll();
-    if (wasOpen && !fromPopstate) syncModalHistory(false);
+    if (wasOpen && syncHash) clearModalHash();
     if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
   }
 
   function stepModal(direction) {
     if (!modal || !modal.classList.contains('open')) return;
-    const nextIndex = currentModalIndex + direction;
-    if (nextIndex < 0 || nextIndex >= filtered.length) return;
-    openModalAtIndex(nextIndex);
+    const item = filtered[currentModalIndex];
+    if (!item) return;
+    const { images } = getModalImages(item);
+    if (images.length <= 1) return;
+    const nextIndex = (currentMediaIndex + direction + images.length) % images.length;
+    renderModalGallery(item, nextIndex);
+    applyNoWidow(modalHeroMedia);
+    hydrateMediaFrames(modalHeroMedia);
   }
 
   function trapFocus(event) {
@@ -920,19 +925,42 @@
       closeNav(true);
       closeAllCustomSelects();
     }
-    if (e.key === 'ArrowLeft') stepModal(-1);
-    if (e.key === 'ArrowRight') stepModal(1);
+    if (modal && modal.classList.contains('open') && e.key === 'ArrowLeft') stepModal(-1);
+    if (modal && modal.classList.contains('open') && e.key === 'ArrowRight') stepModal(1);
   });
 
-  window.addEventListener('popstate', (event) => {
-    if (!modal || !modal.classList.contains('open')) return;
-    if (suppressNextPopstateClose) {
-      suppressNextPopstateClose = false;
-      closeModal({ fromPopstate: true });
+  function syncModalFromHash() {
+    const modalId = parseModalHash();
+    if (!modalId) {
+      if (modal && modal.classList.contains('open')) closeModal({ syncHash: false });
       return;
     }
-    if (!(event.state && event.state[MODAL_HISTORY_KEY])) {
-      closeModal({ fromPopstate: true });
-    }
-  });
+    openModalById(modalId);
+  }
+
+  if (!window[BIND_GUARD_KEY]) {
+    window[BIND_GUARD_KEY] = true;
+    window.addEventListener('pageshow', (event) => {
+      document.documentElement.classList.add('bfcache-restore');
+      safeRehydrateUI(event.persisted ? 'pageshow-bfcache' : 'pageshow');
+      requestAnimationFrame(() => safeRehydrateUI('pageshow-rAF'));
+      window.setTimeout(() => safeRehydrateUI('pageshow-timeout'), 50);
+      window.setTimeout(() => {
+        document.documentElement.classList.remove('bfcache-restore');
+      }, 200);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') safeRehydrateUI('visibilitychange');
+    });
+
+    window.addEventListener('pagehide', () => {
+      clearPageLeavingState();
+    });
+
+    window.addEventListener('hashchange', syncModalFromHash);
+    window.addEventListener('popstate', syncModalFromHash);
+  }
+
+  syncModalFromHash();
 })();
