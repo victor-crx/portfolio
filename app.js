@@ -128,6 +128,31 @@
   }, { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
 
+
+  function applyNoWidow(scope = document) {
+    scope.querySelectorAll('.no-widow').forEach((node) => {
+      if (!node || node.dataset.widowLocked === 'true') return;
+      const text = node.textContent;
+      if (!text || text.trim().split(/\s+/).length < 3) return;
+      node.textContent = text.replace(/\s+([^\s]+)\s*$/, ' $1');
+      node.dataset.widowLocked = 'true';
+    });
+  }
+
+  function hydrateMediaFrames(scope = document) {
+    scope.querySelectorAll('.media-frame img, .media-frame [data-media-img]').forEach((media) => {
+      if (media.complete) {
+        media.classList.add('is-loaded');
+      } else {
+        media.addEventListener('load', () => media.classList.add('is-loaded'), { once: true });
+        media.addEventListener('error', () => media.classList.add('is-loaded'), { once: true });
+      }
+    });
+  }
+
+  applyNoWidow();
+  hydrateMediaFrames();
+
   const grid = document.querySelector('[data-project-grid]');
   if (!grid) return;
 
@@ -350,15 +375,18 @@
       return `
       <article class="project-card reveal">
         <button type="button" class="project-tile" data-open-id="${item.id}">
-          <img class="project-image" src="${preview}" alt="${item.title} abstract preview" loading="lazy">
+          <div class="project-image-shell"><div class="media-frame ratio-4x3"><img class="project-image" data-media-img src="${preview}" alt="${item.title} abstract preview" loading="lazy"><span class="accent-tick" aria-hidden="true"></span></div></div>
           <div class="caption-bar">
             <div class="caption-meta">${item.type.replace('_', ' ')} • ${item.date}</div>
-            <h3 class="caption-title">${item.title}</h3>
+            <h3 class="caption-title balance no-widow">${item.title}</h3>
             <p class="caption-summary">${item.summary}</p>
           </div>
         </button>
       </article>`;
     }).join('');
+
+    hydrateMediaFrames(grid);
+    applyNoWidow(grid);
 
     document.querySelectorAll('[data-open-id]').forEach((btn) => {
       btn.addEventListener('click', () => openModalById(btn.dataset.openId));
@@ -386,7 +414,10 @@
 
     modalTitle.textContent = item.title;
     modalMeta.textContent = `${item.type} • ${item.date} • ${item.collections.join(', ')}`;
+    const modalPreview = buildPlaceholder(item);
+
     modalBody.innerHTML = `
+      <div class="media-frame ratio-16x9"><img data-media-img src="${modalPreview}" alt="${item.title} detail preview" loading="lazy"><span class="accent-tick" aria-hidden="true"></span></div>
       <p>${item.summary}</p>
       <h3>Problem</h3><p>${item.sections.problem}</p>
       <h3>Constraints</h3><p>${item.sections.constraints}</p>
@@ -398,6 +429,9 @@
 
     if (modalPrev) modalPrev.disabled = currentModalIndex <= 0;
     if (modalNext) modalNext.disabled = currentModalIndex >= filtered.length - 1;
+
+    applyNoWidow(modalBody);
+    hydrateMediaFrames(modalBody);
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
