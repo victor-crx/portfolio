@@ -427,12 +427,40 @@
     return Boolean(modal && modal.classList.contains('open'));
   }
 
-  function ensureBaseModalHistoryState() {
-    const currentState = (window.history.state && typeof window.history.state === 'object')
-      ? window.history.state
-      : {};
-    const nextState = { ...currentState, modal: false };
-    window.history.replaceState(nextState, '', window.location.href);
+  function getCurrentModalItemId() {
+    if (currentModalIndex < 0 || currentModalIndex >= filtered.length) return '';
+    const item = filtered[currentModalIndex];
+    return item && item.id ? item.id : '';
+  }
+
+  function getModalHashId() {
+    const rawHash = window.location.hash || '';
+    if (!rawHash.startsWith('#p=')) return '';
+    const encoded = rawHash.slice(3);
+    if (!encoded) return '';
+    try {
+      return decodeURIComponent(encoded);
+    } catch (error) {
+      void error;
+      return '';
+    }
+  }
+
+  function replaceHashlessUrl() {
+    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState(window.history.state, '', cleanUrl);
+  }
+
+  function writeModalHash(itemId, shouldReplace = false) {
+    if (!itemId) return;
+    const nextHash = `#p=${encodeURIComponent(itemId)}`;
+    if (window.location.hash === nextHash) return;
+    if (shouldReplace) {
+      const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+      window.history.replaceState(window.history.state, '', nextUrl);
+      return;
+    }
+    window.location.hash = `p=${encodeURIComponent(itemId)}`;
   }
 
   function setModalOpenState(isOpen) {
@@ -483,13 +511,6 @@
 
     if (modalPrev) modalPrev.disabled = !showThumbs;
     if (modalNext) modalNext.disabled = !showThumbs;
-  }
-
-  function pushModalHistoryState(itemId) {
-    if (!itemId) return;
-    const currentState = window.history.state;
-    if (currentState && currentState.modal === true && currentState.id === itemId) return;
-    window.history.pushState({ modal: true, id: itemId }, '', window.location.href);
   }
 
   const customSelects = [];
@@ -786,8 +807,9 @@
     if (countNode) countNode.textContent = `${filtered.length} projects`;
     if (isModalOpen()) {
       const activeItem = filtered[currentModalIndex];
-      if (!activeItem) closeModal({ fromPopstate: true });
+      if (!activeItem) closeModal({ fromHashSync: true });
     }
+    syncModalFromHash('filters');
   }
 
   function renderCards(items) {
@@ -832,7 +854,7 @@
   }
 
   function openModalAtIndex(index, options = {}) {
-    const { fromPopstate = false } = options;
+    const { fromHashSync = false } = options;
     if (!modal || index < 0 || index >= filtered.length) return;
     const item = filtered[index];
     if (!item) return;
@@ -866,18 +888,18 @@
     modal.dataset.galleryMode = 'true';
     modalClose.focus();
     if (!wasOpen) lockScroll();
-    if (!fromPopstate && !wasOpen) pushModalHistoryState(item.id);
+    if (!fromHashSync) writeModalHash(item.id, wasOpen);
   }
 
   function closeModal(options = {}) {
-    const { fromPopstate = false } = options;
+    const { fromHashSync = false } = options;
     if (!modal) return;
     const wasOpen = isModalOpen();
     if (!wasOpen) {
       unlockScroll();
       return;
     }
-    if (!fromPopstate && window.history.state && window.history.state.modal === true) {
+    if (!fromHashSync && getModalHashId()) {
       window.history.back();
       return;
     }
@@ -962,34 +984,55 @@
     if (modal && modal.classList.contains('open') && e.key === 'ArrowRight') stepModal(1);
   });
 
-  function syncModalFromHistory(event) {
-    const nextState = event && event.state && typeof event.state === 'object'
-      ? event.state
-      : (window.history.state && typeof window.history.state === 'object' ? window.history.state : { modal: false });
-    if (nextState.modal === true) {
-      if (!isModalOpen()) openModalById(nextState.id, { fromPopstate: true });
+  function syncModalFromHash(fromEvent) {
+    void fromEvent;
+    const hasModalHash = (window.location.hash || '').startsWith('#p=');
+    const hashId = getModalHashId();
+    if (hasModalHash && !hashId) {
+      replaceHashlessUrl();
+      closeModal({ fromHashSync: true });
+      unlockScroll();
       return;
     }
-    if (isModalOpen()) closeModal({ fromPopstate: true });
+    if (hashId) {
+      const nextIndex = filtered.findIndex((project) => project.id === hashId);
+      if (nextIndex === -1) {
+        replaceHashlessUrl();
+        closeModal({ fromHashSync: true });
+        unlockScroll();
+        return;
+      }
+
+      const currentId = getCurrentModalItemId();
+      if (!isModalOpen() || currentId !== hashId) {
+        openModalAtIndex(nextIndex, { fromHashSync: true });
+      }
+      return;
+    }
+
+    if (isModalOpen()) closeModal({ fromHashSync: true });
     else unlockScroll();
   }
 
   if (!window[BIND_GUARD_KEY]) {
     window[BIND_GUARD_KEY] = true;
     window.addEventListener('pageshow', (event) => {
-      if (!isModalOpen()) unlockScroll();
       document.documentElement.classList.add('bfcache-restore');
       safeRehydrateUI(event.persisted ? 'pageshow-bfcache' : 'pageshow');
+      syncModalFromHash('pageshow');
       requestAnimationFrame(() => safeRehydrateUI('pageshow-rAF'));
       window.setTimeout(() => safeRehydrateUI('pageshow-timeout'), 50);
       window.setTimeout(() => {
+        syncModalFromHash('pageshow-timeout');
         document.documentElement.classList.remove('bfcache-restore');
       }, 200);
     });
 
     document.addEventListener('visibilitychange', () => {
-      unlockScroll();
-      if (document.visibilityState === 'visible') safeRehydrateUI('visibilitychange');
+      if (document.visibilityState === 'visible') {
+        safeRehydrateUI('visibilitychange');
+        syncModalFromHash('visibility');
+      }
     });
 
     window.addEventListener('pagehide', () => {
@@ -1001,9 +1044,8 @@
       if (!isModalOpen()) unlockScroll();
     });
 
-    window.addEventListener('popstate', syncModalFromHistory);
+    window.addEventListener('hashchange', () => syncModalFromHash('hashchange'));
   }
 
-  ensureBaseModalHistoryState();
-  syncModalFromHistory();
+  syncModalFromHash('init');
 })();
