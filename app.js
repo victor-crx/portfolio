@@ -110,10 +110,12 @@
     navLinks.classList.remove('open');
     if (isCompactNav()) {
       navLinks.setAttribute('aria-hidden', 'true');
+      navLinks.hidden = true;
       setElementInert(navLinks, true);
       setFocusableState(navLinks, true);
     } else {
       navLinks.setAttribute('aria-hidden', 'false');
+      navLinks.hidden = false;
       setElementInert(navLinks, false);
       setFocusableState(navLinks, false);
     }
@@ -154,10 +156,12 @@
     navBackdrop.tabIndex = -1;
     if (isCompactNav()) {
       navLinks.setAttribute('aria-hidden', 'true');
+      navLinks.hidden = true;
       setElementInert(navLinks, true);
       setFocusableState(navLinks, true);
     } else {
       navLinks.setAttribute('aria-hidden', 'false');
+      navLinks.hidden = false;
       setElementInert(navLinks, false);
       setFocusableState(navLinks, false);
     }
@@ -172,6 +176,7 @@
         navLastFocused = document.activeElement;
         if (isCompactNav()) {
           navLinks.setAttribute('aria-hidden', 'false');
+          navLinks.hidden = false;
           setElementInert(navLinks, false);
           setFocusableState(navLinks, false);
           navBackdrop.setAttribute('aria-hidden', 'false');
@@ -205,12 +210,14 @@
       if (isCompactNav()) {
         if (!navLinks.classList.contains('open')) {
           navLinks.setAttribute('aria-hidden', 'true');
+          navLinks.hidden = true;
           setElementInert(navLinks, true);
           setFocusableState(navLinks, true);
         }
       } else {
         navLinks.classList.remove('open');
         navLinks.setAttribute('aria-hidden', 'false');
+        navLinks.hidden = false;
         setElementInert(navLinks, false);
         setFocusableState(navLinks, false);
         navBackdrop.classList.remove('open');
@@ -467,6 +474,7 @@
     if (!modal) return;
     modal.classList.toggle('open', isOpen);
     document.body.classList.toggle('is-modal-open', isOpen);
+    modal.hidden = !isOpen;
     modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     setElementInert(modal, !isOpen);
     setFocusableState(modal, !isOpen);
@@ -606,7 +614,19 @@
     const listboxId = listbox.id || `listbox-${Math.random().toString(36).slice(2, 9)}`;
     listbox.id = listboxId;
     trigger.setAttribute('aria-controls', listboxId);
+    listbox.hidden = true;
     listbox.setAttribute('aria-hidden', 'true');
+    setElementInert(listbox, true);
+    setFocusableState(listbox, true);
+
+    if (nativeSelect.options.length === 0) {
+      options.forEach((option) => {
+        const nativeOption = document.createElement('option');
+        nativeOption.value = option.dataset.selectOption || '';
+        nativeOption.textContent = option.textContent || '';
+        nativeSelect.appendChild(nativeOption);
+      });
+    }
 
     let activeIndex = Math.max(0, options.findIndex((option) => option.dataset.selectOption === nativeSelect.value));
 
@@ -637,7 +657,10 @@
       closeAllCustomSelects(api);
       root.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
+      listbox.hidden = false;
       listbox.setAttribute('aria-hidden', 'false');
+      setElementInert(listbox, false);
+      setFocusableState(listbox, false);
       const activeOption = options[activeIndex] || options[0];
       if (activeOption) activeOption.focus();
     }
@@ -645,7 +668,10 @@
     function close(returnFocus = false) {
       root.classList.remove('open');
       trigger.setAttribute('aria-expanded', 'false');
+      listbox.hidden = true;
       listbox.setAttribute('aria-hidden', 'true');
+      setElementInert(listbox, true);
+      setFocusableState(listbox, true);
       if (returnFocus) trigger.focus();
     }
 
