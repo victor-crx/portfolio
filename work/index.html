@@ -76,7 +76,7 @@
 
       <section class="filters reveal" aria-label="Filters">
         <div class="filter-row">
-          <div class="custom-select" data-custom-select>
+          <div class="custom-select" data-custom-select data-select-kind="collection">
             <label class="sr-only" id="collection-filter-label" for="collection-filter-native">Collection</label>
             <div class="native-select-fallback" hidden aria-hidden="true">
               <select class="control sr-only-native" id="collection-filter-native" data-filter-collection tabindex="-1"></select>
@@ -94,16 +94,10 @@
               <span data-select-label>All collections</span>
               <span class="custom-select-caret" aria-hidden="true"></span>
             </button>
-            <div class="custom-select-panel" id="collection-filter-listbox" role="listbox" tabindex="-1" aria-labelledby="collection-filter-label" data-select-listbox>
-              <button type="button" class="custom-select-option" id="collection-filter-option-all" role="option" data-select-option="all" aria-selected="true">All collections</button>
-              <button type="button" class="custom-select-option" id="collection-filter-option-systems" role="option" data-select-option="systems" aria-selected="false">Systems</button>
-              <button type="button" class="custom-select-option" id="collection-filter-option-collab" role="option" data-select-option="collab" aria-selected="false">Collaboration & Live</button>
-              <button type="button" class="custom-select-option" id="collection-filter-option-delivery" role="option" data-select-option="delivery" aria-selected="false">Delivery</button>
-              <button type="button" class="custom-select-option" id="collection-filter-option-creative" role="option" data-select-option="creative" aria-selected="false">Creative</button>
-            </div>
+            <div class="custom-select-panel" id="collection-filter-listbox" role="listbox" tabindex="-1" aria-labelledby="collection-filter-label" data-select-listbox></div>
           </div>
 
-          <div class="custom-select" data-custom-select>
+          <div class="custom-select" data-custom-select data-select-kind="type">
             <label class="sr-only" id="type-filter-label" for="type-filter-native">Type</label>
             <div class="native-select-fallback" hidden aria-hidden="true">
               <select class="control sr-only-native" id="type-filter-native" data-filter-type tabindex="-1"></select>
@@ -121,14 +115,7 @@
               <span data-select-label>All types</span>
               <span class="custom-select-caret" aria-hidden="true"></span>
             </button>
-            <div class="custom-select-panel" id="type-filter-listbox" role="listbox" tabindex="-1" aria-labelledby="type-filter-label" data-select-listbox>
-              <button type="button" class="custom-select-option" id="type-filter-option-all" role="option" data-select-option="all" aria-selected="true">All types</button>
-              <button type="button" class="custom-select-option" id="type-filter-option-case-study" role="option" data-select-option="case_study" aria-selected="false">Case Study</button>
-              <button type="button" class="custom-select-option" id="type-filter-option-lab" role="option" data-select-option="lab" aria-selected="false">Lab</button>
-              <button type="button" class="custom-select-option" id="type-filter-option-template" role="option" data-select-option="template" aria-selected="false">Template</button>
-              <button type="button" class="custom-select-option" id="type-filter-option-gallery" role="option" data-select-option="gallery" aria-selected="false">Gallery</button>
-              <button type="button" class="custom-select-option" id="type-filter-option-writing" role="option" data-select-option="writing" aria-selected="false">Writing</button>
-            </div>
+            <div class="custom-select-panel" id="type-filter-listbox" role="listbox" tabindex="-1" aria-labelledby="type-filter-label" data-select-listbox></div>
           </div>
 
           <input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" />
@@ -143,20 +130,6 @@
 
   <footer class="footer"><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div><div class="footer-grid"><div class="footer-block"><h4>Portfolio</h4><p>Reusable data-driven structure for multiple lanes.</p></div><div class="footer-block"><h4>Collections</h4><p><a href="../systems/">Systems</a><br><a href="../collab/">Collab</a><br><a href="../delivery/">Delivery</a><br><a href="../creative/">Creative</a></p></div><div class="footer-block"><h4>Resources</h4><p><a href="../resume/">Resume</a><br><a href="../contact/">Contact</a></p></div><div class="footer-block"><h4>Download</h4><p><a href="/assets/resume-placeholder.pdf">Resume PDF</a></p></div></div></div></footer>
 
-  <div class="modal-overlay" data-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-panel">
-      <div class="modal-header"><h2 class="modal-title" id="modal-title" data-modal-title></h2><div class="modal-actions"><button class="modal-nav" type="button" data-modal-prev aria-label="Previous project"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3.5L6 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="modal-nav" type="button" data-modal-next aria-label="Next project"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L10 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="modal-close" type="button" data-modal-close aria-label="Close dialog"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div></div>
-      <div class="modal-scroller" data-modal-scroller>
-        <div class="modal-body">
-          <section class="modal-hero" aria-label="Project overview">
-            <div class="modal-hero-copy"><p class="meta-line" data-modal-meta></p><p class="modal-summary" data-modal-summary></p></div>
-            <div class="modal-hero-media" data-modal-hero-media></div>
-          </section>
-          <div class="modal-content" data-modal-body></div>
-        </div>
-      </div>
-    </div>
-  </div>
   <script src="/app.js" defer></script>
 </body>
 </html>
