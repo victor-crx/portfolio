@@ -1324,6 +1324,50 @@ body.is-modal-open {
   transform: translateY(0);
 }
 
+/* UI safe exclusions: interactive controls must never be reveal-gated */
+.site-header,
+.site-header *,
+.nav-toggle,
+.nav-links,
+.nav-links a,
+.nav-backdrop,
+.filters,
+.filter-row,
+.custom-select,
+.custom-select-trigger,
+.custom-select-panel,
+.custom-select-option,
+[data-select-trigger],
+[data-select-listbox],
+[data-filter-search],
+[data-filter-collection],
+[data-filter-type],
+.modal-overlay,
+.modal-panel,
+.modal-actions,
+.modal-close,
+.modal-nav {
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+.filters,
+.filter-row,
+.custom-select,
+.custom-select-panel,
+.modal-actions {
+  transition: none !important;
+}
+
+.custom-select.open .custom-select-panel,
+.custom-select [aria-expanded='true'] + .custom-select-panel {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
 :focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 3px;

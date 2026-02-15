@@ -379,10 +379,43 @@
   });
 
   const revealSelector = '[data-reveal], .reveal';
+  const revealUiExclusionSelector = [
+    'header',
+    'nav',
+    '.site-header',
+    '.nav-toggle',
+    '.nav-links',
+    '.nav-backdrop',
+    '.filters',
+    '.filter-row',
+    '.custom-select',
+    '[data-custom-select]',
+    '[data-select-trigger]',
+    '[data-select-listbox]',
+    '[data-filter-search]',
+    '[data-filter-collection]',
+    '[data-filter-type]',
+    '[role="searchbox"]',
+    '[role="listbox"]',
+    '.modal-overlay',
+    '.modal-panel',
+    '.modal-actions',
+    '.modal-close',
+    '.modal-nav'
+  ].join(', ');
+
+  function isRevealUiExcluded(element) {
+    return Boolean(element && element.closest(revealUiExclusionSelector));
+  }
+
+  function getRevealTargets(scope = document) {
+    return Array.from(scope.querySelectorAll(revealSelector)).filter((element) => !isRevealUiExcluded(element));
+  }
 
   function prepareRevealStaggers(scope = document) {
     scope.querySelectorAll('[data-reveal-stagger]').forEach((container) => {
-      const children = Array.from(container.children).filter((child) => child.matches(revealSelector));
+      const children = Array.from(container.children)
+        .filter((child) => child.matches(revealSelector) && !isRevealUiExcluded(child));
       children.forEach((child, index) => {
         child.style.setProperty('--reveal-delay', `${index * 60}ms`);
       });
@@ -391,7 +424,7 @@
 
   let reveal;
   if (prefersReducedMotion()) {
-    document.querySelectorAll(revealSelector).forEach((el) => {
+    getRevealTargets().forEach((el) => {
       el.classList.add('visible', 'is-revealed');
     });
   } else {
@@ -402,7 +435,7 @@
         observer.unobserve(entry.target);
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
-    document.querySelectorAll(revealSelector).forEach((el) => reveal.observe(el));
+    getRevealTargets().forEach((el) => reveal.observe(el));
   }
 
   prepareRevealStaggers();
@@ -759,6 +792,7 @@
     const labelMap = new Map(definitions.map((entry) => [entry.value, entry.label]));
     let options = [];
     let activeIndex = Math.max(0, definitions.findIndex((entry) => entry.value === nativeSelect.value));
+    let api;
 
     function renderOptions() {
       if (options.length) return;
@@ -911,11 +945,13 @@
 
     syncSelection(nativeSelect.value || definitions[0].value, false);
 
-    return {
+    api = {
       root,
       close,
       isOpen: () => root.classList.contains('open')
     };
+
+    return api;
   }
 
 
