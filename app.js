@@ -378,17 +378,34 @@
     if (normalizedPath === normalized) link.classList.add('active');
   });
 
+  const revealSelector = '[data-reveal], .reveal';
+
+  function prepareRevealStaggers(scope = document) {
+    scope.querySelectorAll('[data-reveal-stagger]').forEach((container) => {
+      const children = Array.from(container.children).filter((child) => child.matches(revealSelector));
+      children.forEach((child, index) => {
+        child.style.setProperty('--reveal-delay', `${index * 60}ms`);
+      });
+    });
+  }
+
   let reveal;
   if (prefersReducedMotion()) {
-    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+    document.querySelectorAll(revealSelector).forEach((el) => {
+      el.classList.add('visible', 'is-revealed');
+    });
   } else {
-    reveal = new IntersectionObserver((entries) => {
+    reveal = new IntersectionObserver((entries, observer) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) entry.target.classList.add('visible');
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('visible', 'is-revealed');
+        observer.unobserve(entry.target);
       });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    document.querySelectorAll(revealSelector).forEach((el) => reveal.observe(el));
   }
+
+  prepareRevealStaggers();
 
 
   function applyNoWidow(scope = document) {
@@ -593,6 +610,7 @@
   function setModalOpenState(isOpen) {
     if (!modal) return;
     modal.classList.toggle('open', isOpen);
+    if (!isOpen) modal.classList.remove('opening', 'closing');
     document.body.classList.toggle('is-modal-open', isOpen);
     modal.hidden = !isOpen;
     modal.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
@@ -979,7 +997,7 @@
     grid.innerHTML = items.map((item) => {
       const preview = buildPlaceholder(item);
       return `
-      <article class="project-card reveal">
+      <article class="project-card reveal" data-reveal>
         <button type="button" class="project-tile" data-open-id="${item.id}">
           <div class="project-image-shell"><div class="media-frame media-frame--landscape ratio-4x3"><img class="project-image" data-media-img src="${preview}" alt="${item.title} abstract preview" loading="lazy"><span class="media-placeholder media-placeholder--featured" aria-hidden="true"><span class="media-placeholder__caption">Featured</span></span><span class="accent-tick" aria-hidden="true"></span></div></div>
           <div class="caption-bar">
@@ -997,7 +1015,8 @@
     document.querySelectorAll('[data-open-id]').forEach((btn) => {
       btn.addEventListener('click', () => openModalById(btn.dataset.openId));
     });
-    if (reveal) document.querySelectorAll('.reveal').forEach((el) => reveal.observe(el));
+    if (reveal) document.querySelectorAll(revealSelector).forEach((el) => reveal.observe(el));
+    prepareRevealStaggers(grid);
   }
 
   function buildPlaceholder(item) {
@@ -1054,6 +1073,10 @@
     if (modalScroller) modalScroller.scrollTop = 0;
 
     setModalOpenState(true);
+    modal.classList.add('opening');
+    requestAnimationFrame(() => {
+      if (modal) modal.classList.remove('opening');
+    });
     modal.dataset.galleryMode = 'true';
     modalClose.focus({ preventScroll: true });
     if (!wasOpen) lockScroll();
@@ -1073,6 +1096,7 @@
       return;
     }
     try {
+      modal.classList.add('closing');
       setModalOpenState(false);
       modal.removeAttribute('data-gallery-mode');
       if (modalScroller) modalScroller.scrollTop = 0;
