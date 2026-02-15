@@ -453,6 +453,7 @@
   let currentModalIndex = -1;
   let currentMediaIndex = 0;
   let lastFocused;
+  let syncingModalFromHash = false;
   const BIND_GUARD_KEY = '__portfolioWorkBindings';
 
   function isModalOpen() {
@@ -899,9 +900,18 @@
     return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="${safeType} placeholder"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16161d"/><stop offset="100%" stop-color="#0f0f13"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><g opacity="0.6"><rect x="64" y="84" width="672" height="2" fill="#C1121F"/><rect x="64" y="102" width="420" height="2" fill="rgba(245,245,245,0.45)"/></g><g opacity="0.3"><circle cx="640" cy="180" r="120" fill="#C1121F"/></g><text x="64" y="540" fill="rgba(245,245,245,0.75)" font-family="Inter,Arial,sans-serif" font-size="28" letter-spacing="5">${decodeURIComponent(label)}</text></svg>`)}`;
   }
 
-  function openModalById(id, options = {}) {
-    currentModalIndex = filtered.findIndex((p) => p.id === id);
-    openModalAtIndex(currentModalIndex, options);
+  function openModal(id, options = {}) {
+    const { replace = isModalOpen() } = options;
+    writeModalHash(id, replace);
+    if (syncingModalFromHash) return;
+
+    const expectedHash = `#p=${encodeURIComponent(id)}`;
+    if (window.location.hash === expectedHash) syncModalFromHash('openModal');
+  }
+
+  function openModalById(id) {
+    if (!id) return;
+    openModal(id);
   }
 
   function openModalAtIndex(index, options = {}) {
@@ -939,7 +949,7 @@
     modal.dataset.galleryMode = 'true';
     modalClose.focus({ preventScroll: true });
     if (!wasOpen) lockScroll();
-    if (!fromHashSync) writeModalHash(item.id, wasOpen);
+    if (!fromHashSync) openModal(item.id, { replace: wasOpen });
   }
 
   function closeModal(options = {}) {
@@ -1037,32 +1047,37 @@
 
   function syncModalFromHash(fromEvent) {
     void fromEvent;
-    const hasModalHash = (window.location.hash || '').startsWith('#p=');
-    const hashId = getModalHashId();
-    if (hasModalHash && !hashId) {
-      replaceHashlessUrl();
-      closeModal({ fromHashSync: true });
-      unlockScroll();
-      return;
-    }
-    if (hashId) {
-      const nextIndex = filtered.findIndex((project) => project.id === hashId);
-      if (nextIndex === -1) {
+    syncingModalFromHash = true;
+    try {
+      const hasModalHash = (window.location.hash || '').startsWith('#p=');
+      const hashId = getModalHashId();
+      if (hasModalHash && !hashId) {
         replaceHashlessUrl();
         closeModal({ fromHashSync: true });
         unlockScroll();
         return;
       }
+      if (hashId) {
+        const nextIndex = filtered.findIndex((project) => project.id === hashId);
+        if (nextIndex === -1) {
+          replaceHashlessUrl();
+          closeModal({ fromHashSync: true });
+          unlockScroll();
+          return;
+        }
 
-      const currentId = getCurrentModalItemId();
-      if (!isModalOpen() || currentId !== hashId) {
-        openModalAtIndex(nextIndex, { fromHashSync: true });
+        const currentId = getCurrentModalItemId();
+        if (!isModalOpen() || currentId !== hashId) {
+          openModalAtIndex(nextIndex, { fromHashSync: true });
+        }
+        return;
       }
-      return;
-    }
 
-    if (isModalOpen()) closeModal({ fromHashSync: true });
-    else unlockScroll();
+      if (isModalOpen()) closeModal({ fromHashSync: true });
+      else unlockScroll();
+    } finally {
+      syncingModalFromHash = false;
+    }
   }
 
   if (!window[BIND_GUARD_KEY]) {
