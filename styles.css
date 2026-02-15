@@ -735,7 +735,14 @@ main.section > .container {
 .project-image-shell .media-frame {
   border-radius: calc(var(--radius-md) - 4px);
   overflow: hidden;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
+}
+
+.project-image-shell .media-frame::before,
+.project-image-shell .media-frame::after,
+.project-image-shell .media-frame .media-placeholder,
+.project-image-shell .media-frame .accent-tick {
+  pointer-events: none;
 }
 .caption-bar {
   padding: var(--space-4) var(--space-4) var(--space-5);
