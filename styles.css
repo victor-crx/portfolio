@@ -1199,7 +1199,7 @@ body.is-modal-open {
 }
 .modal-gallery__hero {
   overflow: hidden;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
 }
 .modal-gallery__hero img {
   width: 100%;
@@ -1214,7 +1214,8 @@ body.is-modal-open {
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 0.2rem;
-  overscroll-behavior-x: contain;
+  overscroll-behavior-x: auto;
+  touch-action: pan-x;
 }
 .modal-thumb {
   all: unset;
@@ -1225,6 +1226,16 @@ body.is-modal-open {
   aspect-ratio: 16 / 9;
   display: block;
   background: rgba(16, 16, 20, 0.9);
+  pointer-events: auto;
+}
+.modal-gallery__hero::before,
+.modal-gallery__hero::after,
+.modal-thumb::before,
+.modal-thumb::after,
+.modal-gallery__hero .media-placeholder,
+.modal-gallery__hero .media-placeholder::before,
+.modal-gallery__hero .accent-tick {
+  pointer-events: none;
 }
 .modal-thumb img {
   width: 100%;
