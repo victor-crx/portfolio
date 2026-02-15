@@ -17,6 +17,7 @@
   let navLastFocused;
   let scrollLockCount = 0;
   let savedScrollY = 0;
+  let savedBodyPaddingRight = '';
 
   function focusMainFromHash() {
     if (window.location.hash !== '#main-content' || !firstMain) return;
@@ -35,9 +36,18 @@
   function lockScroll() {
     if (scrollLockCount === 0) {
       savedScrollY = window.scrollY || window.pageYOffset || 0;
+      savedBodyPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
       document.documentElement.classList.add('is-scroll-locked');
       document.body.classList.add('is-scroll-locked');
+      document.body.style.position = 'fixed';
       document.body.style.top = `-${savedScrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
     }
     scrollLockCount += 1;
   }
@@ -47,8 +57,17 @@
     if (scrollLockCount === 0) {
       document.documentElement.classList.remove('is-scroll-locked');
       document.body.classList.remove('is-scroll-locked');
+      document.body.style.removeProperty('position');
       document.body.style.removeProperty('top');
-      window.scrollTo({ top: savedScrollY, left: 0, behavior: 'auto' });
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('right');
+      document.body.style.removeProperty('width');
+      if (savedBodyPaddingRight) {
+        document.body.style.paddingRight = savedBodyPaddingRight;
+      } else {
+        document.body.style.removeProperty('padding-right');
+      }
+      window.scrollTo(0, savedScrollY);
     }
   }
 
@@ -402,8 +421,19 @@
   let currentModalIndex = -1;
   let currentMediaIndex = 0;
   let lastFocused;
-  const MODAL_HASH_PREFIX = '#p=';
   const BIND_GUARD_KEY = '__portfolioWorkBindings';
+
+  function isModalOpen() {
+    return Boolean(modal && modal.classList.contains('open'));
+  }
+
+  function ensureBaseModalHistoryState() {
+    const currentState = (window.history.state && typeof window.history.state === 'object')
+      ? window.history.state
+      : {};
+    const nextState = { ...currentState, modal: false };
+    window.history.replaceState(nextState, '', window.location.href);
+  }
 
   function setModalOpenState(isOpen) {
     if (!modal) return;
@@ -455,27 +485,11 @@
     if (modalNext) modalNext.disabled = !showThumbs;
   }
 
-  function parseModalHash() {
-    if (!window.location.hash.startsWith(MODAL_HASH_PREFIX)) return '';
-    const rawId = window.location.hash.slice(MODAL_HASH_PREFIX.length);
-    try {
-      return decodeURIComponent(rawId);
-    } catch (error) {
-      return rawId;
-    }
-  }
-
-  function syncHashForModal(item) {
-    if (!item || !item.id) return;
-    const nextHash = `${MODAL_HASH_PREFIX}${encodeURIComponent(item.id)}`;
-    if (window.location.hash === nextHash) return;
-    window.location.hash = nextHash;
-  }
-
-  function clearModalHash() {
-    if (!window.location.hash.startsWith(MODAL_HASH_PREFIX)) return;
-    const cleanUrl = `${window.location.pathname}${window.location.search}`;
-    window.history.replaceState(window.history.state, '', cleanUrl);
+  function pushModalHistoryState(itemId) {
+    if (!itemId) return;
+    const currentState = window.history.state;
+    if (currentState && currentState.modal === true && currentState.id === itemId) return;
+    window.history.pushState({ modal: true, id: itemId }, '', window.location.href);
   }
 
   const customSelects = [];
@@ -519,7 +533,12 @@
     document.body.style.overflow = '';
     document.documentElement.classList.remove('is-scroll-locked');
     document.body.classList.remove('is-scroll-locked');
+    document.body.style.removeProperty('position');
     document.body.style.removeProperty('top');
+    document.body.style.removeProperty('left');
+    document.body.style.removeProperty('right');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('padding-right');
 
     if (navLinks && navToggle) closeNav(false);
     if (navBackdrop) {
@@ -536,7 +555,7 @@
     currentModalIndex = -1;
     currentMediaIndex = 0;
     scrollLockCount = 0;
-    clearModalHash();
+    savedBodyPaddingRight = '';
   }
 
   function clearPageLeavingState() {
@@ -765,7 +784,10 @@
 
     renderCards(filtered);
     if (countNode) countNode.textContent = `${filtered.length} projects`;
-    if (parseModalHash()) syncModalFromHash();
+    if (isModalOpen()) {
+      const activeItem = filtered[currentModalIndex];
+      if (!activeItem) closeModal({ fromPopstate: true });
+    }
   }
 
   function renderCards(items) {
@@ -804,16 +826,17 @@
     return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="${safeType} placeholder"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#16161d"/><stop offset="100%" stop-color="#0f0f13"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><g opacity="0.6"><rect x="64" y="84" width="672" height="2" fill="#C1121F"/><rect x="64" y="102" width="420" height="2" fill="rgba(245,245,245,0.45)"/></g><g opacity="0.3"><circle cx="640" cy="180" r="120" fill="#C1121F"/></g><text x="64" y="540" fill="rgba(245,245,245,0.75)" font-family="Inter,Arial,sans-serif" font-size="28" letter-spacing="5">${decodeURIComponent(label)}</text></svg>`)}`;
   }
 
-  function openModalById(id) {
+  function openModalById(id, options = {}) {
     currentModalIndex = filtered.findIndex((p) => p.id === id);
-    openModalAtIndex(currentModalIndex);
+    openModalAtIndex(currentModalIndex, options);
   }
 
   function openModalAtIndex(index, options = {}) {
-    const { syncHash = true } = options;
+    const { fromPopstate = false } = options;
     if (!modal || index < 0 || index >= filtered.length) return;
     const item = filtered[index];
     if (!item) return;
+    const wasOpen = isModalOpen();
     currentModalIndex = index;
     lastFocused = document.activeElement;
 
@@ -842,19 +865,29 @@
     setModalOpenState(true);
     modal.dataset.galleryMode = 'true';
     modalClose.focus();
-    lockScroll();
-    if (syncHash) syncHashForModal(item);
+    if (!wasOpen) lockScroll();
+    if (!fromPopstate && !wasOpen) pushModalHistoryState(item.id);
   }
 
   function closeModal(options = {}) {
-    const { syncHash = true } = options;
+    const { fromPopstate = false } = options;
     if (!modal) return;
-    const wasOpen = modal.classList.contains('open');
-    setModalOpenState(false);
-    modal.removeAttribute('data-gallery-mode');
-    if (modalScroller) modalScroller.scrollTop = 0;
-    unlockScroll();
-    if (wasOpen && syncHash) clearModalHash();
+    const wasOpen = isModalOpen();
+    if (!wasOpen) {
+      unlockScroll();
+      return;
+    }
+    if (!fromPopstate && window.history.state && window.history.state.modal === true) {
+      window.history.back();
+      return;
+    }
+    try {
+      setModalOpenState(false);
+      modal.removeAttribute('data-gallery-mode');
+      if (modalScroller) modalScroller.scrollTop = 0;
+    } finally {
+      unlockScroll();
+    }
     if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
   }
 
@@ -929,18 +962,22 @@
     if (modal && modal.classList.contains('open') && e.key === 'ArrowRight') stepModal(1);
   });
 
-  function syncModalFromHash() {
-    const modalId = parseModalHash();
-    if (!modalId) {
-      if (modal && modal.classList.contains('open')) closeModal({ syncHash: false });
+  function syncModalFromHistory(event) {
+    const nextState = event && event.state && typeof event.state === 'object'
+      ? event.state
+      : (window.history.state && typeof window.history.state === 'object' ? window.history.state : { modal: false });
+    if (nextState.modal === true) {
+      if (!isModalOpen()) openModalById(nextState.id, { fromPopstate: true });
       return;
     }
-    openModalById(modalId);
+    if (isModalOpen()) closeModal({ fromPopstate: true });
+    else unlockScroll();
   }
 
   if (!window[BIND_GUARD_KEY]) {
     window[BIND_GUARD_KEY] = true;
     window.addEventListener('pageshow', (event) => {
+      if (!isModalOpen()) unlockScroll();
       document.documentElement.classList.add('bfcache-restore');
       safeRehydrateUI(event.persisted ? 'pageshow-bfcache' : 'pageshow');
       requestAnimationFrame(() => safeRehydrateUI('pageshow-rAF'));
@@ -951,16 +988,22 @@
     });
 
     document.addEventListener('visibilitychange', () => {
+      unlockScroll();
       if (document.visibilityState === 'visible') safeRehydrateUI('visibilitychange');
     });
 
     window.addEventListener('pagehide', () => {
+      unlockScroll();
       clearPageLeavingState();
     });
 
-    window.addEventListener('hashchange', syncModalFromHash);
-    window.addEventListener('popstate', syncModalFromHash);
+    window.addEventListener('resize', () => {
+      if (!isModalOpen()) unlockScroll();
+    });
+
+    window.addEventListener('popstate', syncModalFromHistory);
   }
 
-  syncModalFromHash();
+  ensureBaseModalHistoryState();
+  syncModalFromHistory();
 })();
