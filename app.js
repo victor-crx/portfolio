@@ -16,8 +16,23 @@
   let navBackdrop;
   let navLastFocused;
   let scrollLockCount = 0;
+  let scrollLocked = false;
   let savedScrollY = 0;
   let savedBodyPaddingRight = '';
+  let viewportUpdateRaf = 0;
+
+  function setViewportUnits() {
+    const h = window.visualViewport?.height || window.innerHeight;
+    document.documentElement.style.setProperty('--vh', `${h * 0.01}px`);
+  }
+
+  function queueViewportUnitSync() {
+    if (viewportUpdateRaf) return;
+    viewportUpdateRaf = window.requestAnimationFrame(() => {
+      viewportUpdateRaf = 0;
+      setViewportUnits();
+    });
+  }
 
   function focusMainFromHash() {
     if (window.location.hash !== '#main-content' || !firstMain) return;
@@ -48,11 +63,13 @@
       document.body.style.left = '0';
       document.body.style.right = '0';
       document.body.style.width = '100%';
+      scrollLocked = true;
     }
     scrollLockCount += 1;
   }
 
   function unlockScroll() {
+    if (!scrollLocked) return;
     scrollLockCount = Math.max(0, scrollLockCount - 1);
     if (scrollLockCount === 0) {
       document.documentElement.classList.remove('is-scroll-locked');
@@ -68,6 +85,7 @@
         document.body.style.removeProperty('padding-right');
       }
       window.scrollTo(0, savedScrollY);
+      scrollLocked = false;
     }
   }
 
@@ -127,7 +145,7 @@
       navBackdrop.tabIndex = -1;
     }
     unlockScroll();
-    if (returnFocus && navLastFocused) navLastFocused.focus();
+    if (returnFocus && navLastFocused) navLastFocused.focus({ preventScroll: true });
   }
 
   function trapFocusInContainer(container, event) {
@@ -139,10 +157,10 @@
     const last = focusables[focusables.length - 1];
     if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
-      last.focus();
+      last.focus({ preventScroll: true });
     } else if (!event.shiftKey && document.activeElement === last) {
       event.preventDefault();
-      first.focus();
+      first.focus({ preventScroll: true });
     }
   }
 
@@ -184,7 +202,7 @@
           navBackdrop.tabIndex = 0;
           lockScroll();
           const firstLink = navLinks.querySelector('a');
-          if (firstLink) firstLink.focus();
+          if (firstLink) firstLink.focus({ preventScroll: true });
         }
       } else {
         closeNav(true);
@@ -224,9 +242,16 @@
         navBackdrop.setAttribute('aria-hidden', 'true');
         navBackdrop.disabled = true;
         navBackdrop.tabIndex = -1;
-        unlockScroll();
+        if (scrollLocked) unlockScroll();
       }
     });
+  }
+
+  setViewportUnits();
+  window.addEventListener('resize', queueViewportUnitSync, { passive: true });
+  window.addEventListener('orientationchange', queueViewportUnitSync, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', queueViewportUnitSync, { passive: true });
   }
 
   let scrollTicking = false;
@@ -662,7 +687,7 @@
       setElementInert(listbox, false);
       setFocusableState(listbox, false);
       const activeOption = options[activeIndex] || options[0];
-      if (activeOption) activeOption.focus();
+      if (activeOption) activeOption.focus({ preventScroll: true });
     }
 
     function close(returnFocus = false) {
@@ -672,7 +697,7 @@
       listbox.setAttribute('aria-hidden', 'true');
       setElementInert(listbox, true);
       setFocusableState(listbox, true);
-      if (returnFocus) trigger.focus();
+      if (returnFocus) trigger.focus({ preventScroll: true });
     }
 
     function chooseByIndex(index) {
@@ -687,7 +712,7 @@
       options.forEach((option, index) => {
         option.tabIndex = index === activeIndex ? 0 : -1;
       });
-      options[activeIndex].focus();
+      options[activeIndex].focus({ preventScroll: true });
     }
 
     trigger.addEventListener('click', () => {
@@ -728,12 +753,12 @@
       if (event.key === 'Home') {
         event.preventDefault();
         activeIndex = 0;
-        options[0].focus();
+        options[0].focus({ preventScroll: true });
       }
       if (event.key === 'End') {
         event.preventDefault();
         activeIndex = options.length - 1;
-        options[activeIndex].focus();
+        options[activeIndex].focus({ preventScroll: true });
       }
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
@@ -912,7 +937,7 @@
 
     setModalOpenState(true);
     modal.dataset.galleryMode = 'true';
-    modalClose.focus();
+    modalClose.focus({ preventScroll: true });
     if (!wasOpen) lockScroll();
     if (!fromHashSync) writeModalHash(item.id, wasOpen);
   }
@@ -936,7 +961,7 @@
     } finally {
       unlockScroll();
     }
-    if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
+    if (lastFocused && document.contains(lastFocused)) lastFocused.focus({ preventScroll: true });
   }
 
   function stepModal(direction) {
@@ -1062,12 +1087,12 @@
     });
 
     window.addEventListener('pagehide', () => {
-      unlockScroll();
+      if (scrollLocked) unlockScroll();
       clearPageLeavingState();
     });
 
     window.addEventListener('resize', () => {
-      if (!isModalOpen()) unlockScroll();
+      if (!isModalOpen() && scrollLocked) unlockScroll();
     });
 
     window.addEventListener('hashchange', () => syncModalFromHash('hashchange'));
