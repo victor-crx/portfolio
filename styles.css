@@ -946,6 +946,9 @@ main.section > .container {
   box-shadow: var(--shadow-soft);
   transition: opacity var(--dur-med) var(--ease-standard), transform var(--dur-med) var(--ease-standard);
 }
+.custom-select-panel[hidden] {
+  display: none;
+}
 .custom-select.open .custom-select-panel {
   opacity: 1;
   transform: translateY(0);
@@ -1194,10 +1197,11 @@ body.is-modal-open {
   font-size: 0;
   line-height: 1;
 }
-.modal-close span,
-.modal-nav span {
-  font-size: 0.95rem;
-  color: rgba(245,245,245,0.86);
+.modal-close svg,
+.modal-nav svg {
+  width: 14px;
+  height: 14px;
+  color: rgba(245, 245, 245, 0.86);
 }
 .modal-nav[disabled] {
   opacity: 0.45;
@@ -1339,6 +1343,9 @@ body.is-modal-open {
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
+  }
+  .nav-links[hidden] {
+    display: none;
   }
   .nav-backdrop {
     position: fixed;
