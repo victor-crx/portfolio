@@ -437,16 +437,52 @@
   const typeSelect = document.querySelector('[data-filter-type]');
   const searchInput = document.querySelector('[data-filter-search]');
   const countNode = document.querySelector('[data-results-count]');
-  const modal = document.querySelector('[data-modal]');
-  const modalTitle = document.querySelector('[data-modal-title]');
-  const modalMeta = document.querySelector('[data-modal-meta]');
-  const modalSummary = document.querySelector('[data-modal-summary]');
-  const modalHeroMedia = document.querySelector('[data-modal-hero-media]');
-  const modalBody = document.querySelector('[data-modal-body]');
-  const modalScroller = document.querySelector('[data-modal-scroller]');
-  const modalClose = document.querySelector('[data-modal-close]');
-  const modalPrev = document.querySelector('[data-modal-prev]');
-  const modalNext = document.querySelector('[data-modal-next]');
+
+  const FILTER_DEFINITIONS = {
+    collection: [
+      { value: 'all', label: 'All collections' },
+      { value: 'systems', label: 'Systems' },
+      { value: 'collab', label: 'Collaboration & Live' },
+      { value: 'delivery', label: 'Delivery' },
+      { value: 'creative', label: 'Creative' }
+    ],
+    type: [
+      { value: 'all', label: 'All types' },
+      { value: 'case_study', label: 'Case Study' },
+      { value: 'lab', label: 'Lab' },
+      { value: 'template', label: 'Template' },
+      { value: 'gallery', label: 'Gallery' },
+      { value: 'writing', label: 'Writing' }
+    ]
+  };
+
+
+  function populateNativeFilterSelect(select, kind) {
+    if (!select) return;
+    const definitions = FILTER_DEFINITIONS[kind] || [];
+    select.innerHTML = '';
+    definitions.forEach((entry) => {
+      const option = document.createElement('option');
+      option.value = entry.value;
+      option.textContent = entry.label;
+      select.appendChild(option);
+    });
+  }
+
+  populateNativeFilterSelect(collectionSelect, 'collection');
+  populateNativeFilterSelect(typeSelect, 'type');
+
+  let modal = null;
+  let modalTitle = null;
+  let modalMeta = null;
+  let modalSummary = null;
+  let modalHeroMedia = null;
+  let modalBody = null;
+  let modalScroller = null;
+  let modalClose = null;
+  let modalPrev = null;
+  let modalNext = null;
+  let modalPanel = null;
 
   let projects = [];
   let filtered = [];
@@ -455,6 +491,64 @@
   let lastFocused;
   let syncingModalFromHash = false;
   const BIND_GUARD_KEY = '__portfolioWorkBindings';
+
+  function ensureModalElements() {
+    if (modal && document.body.contains(modal)) return;
+    const container = document.createElement('div');
+    container.innerHTML = `<div class="modal-overlay" data-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-panel"><div class="modal-header"><h2 class="modal-title" id="modal-title" data-modal-title></h2><div class="modal-actions"><button class="modal-nav" type="button" data-modal-prev aria-label="Previous project"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3.5L6 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="modal-nav" type="button" data-modal-next aria-label="Next project"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L10 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="modal-close" type="button" data-modal-close aria-label="Close dialog"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div></div><div class="modal-scroller" data-modal-scroller><div class="modal-body"><section class="modal-hero" aria-label="Project overview"><div class="modal-hero-copy"><p class="meta-line" data-modal-meta></p><p class="modal-summary" data-modal-summary></p></div><div class="modal-hero-media" data-modal-hero-media></div></section><div class="modal-content" data-modal-body></div></div></div></div></div>`;
+    modal = container.firstElementChild;
+    document.body.appendChild(modal);
+    modalTitle = modal.querySelector('[data-modal-title]');
+    modalMeta = modal.querySelector('[data-modal-meta]');
+    modalSummary = modal.querySelector('[data-modal-summary]');
+    modalHeroMedia = modal.querySelector('[data-modal-hero-media]');
+    modalBody = modal.querySelector('[data-modal-body]');
+    modalScroller = modal.querySelector('[data-modal-scroller]');
+    modalClose = modal.querySelector('[data-modal-close]');
+    modalPrev = modal.querySelector('[data-modal-prev]');
+    modalNext = modal.querySelector('[data-modal-next]');
+    modalPanel = modal.querySelector('.modal-panel');
+
+    if (modalClose) modalClose.addEventListener('click', () => closeModal());
+    if (modalPrev) modalPrev.addEventListener('click', () => stepModal(-1));
+    if (modalNext) modalNext.addEventListener('click', () => stepModal(1));
+
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    modal.addEventListener('keydown', trapFocus);
+    if (modalHeroMedia) modalHeroMedia.addEventListener('click', (event) => {
+      const thumb = event.target.closest('[data-gallery-thumb]');
+      if (!thumb || currentModalIndex < 0 || currentModalIndex >= filtered.length) return;
+      const nextIndex = Number(thumb.dataset.galleryThumb);
+      if (Number.isNaN(nextIndex)) return;
+      renderModalGallery(filtered[currentModalIndex], nextIndex);
+      applyNoWidow(modalHeroMedia);
+      hydrateMediaFrames(modalHeroMedia);
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    if (modalPanel) {
+      modalPanel.addEventListener('touchstart', (event) => {
+        const touch = event.changedTouches && event.changedTouches[0];
+        if (!touch) return;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+      }, { passive: true });
+
+      modalPanel.addEventListener('touchend', (event) => {
+        const touch = event.changedTouches && event.changedTouches[0];
+        if (!touch) return;
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        const swipeThreshold = 48;
+        if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaY) > Math.abs(deltaX) * 0.75) return;
+        stepModal(deltaX < 0 ? 1 : -1);
+      }, { passive: true });
+    }
+
+    setModalOpenState(false);
+    enforceA11yLabels();
+  }
 
   function isModalOpen() {
     return Boolean(modal && modal.classList.contains('open'));
@@ -505,9 +599,6 @@
     setElementInert(modal, !isOpen);
     setFocusableState(modal, !isOpen);
   }
-
-  if (modal) setModalOpenState(false);
-
 
   function resolveAssetPath(path) {
     if (typeof path !== 'string') return path;
@@ -602,7 +693,8 @@
 
     if (modal) {
       setModalOpenState(false);
-      modal.style.removeProperty('display');
+      modal.remove();
+      modal = null;
     }
 
     closeAllCustomSelects();
@@ -634,8 +726,9 @@
     const trigger = root.querySelector('[data-select-trigger]');
     const label = root.querySelector('[data-select-label]');
     const listbox = root.querySelector('[data-select-listbox]');
-    const options = Array.from(root.querySelectorAll('[data-select-option]'));
-    if (!nativeSelect || !trigger || !listbox || !options.length || !label) return null;
+    const kind = root.dataset.selectKind;
+    const definitions = FILTER_DEFINITIONS[kind] || [];
+    if (!nativeSelect || !trigger || !listbox || !label || !definitions.length) return null;
 
     const listboxId = listbox.id || `listbox-${Math.random().toString(36).slice(2, 9)}`;
     listbox.id = listboxId;
@@ -645,42 +738,63 @@
     setElementInert(listbox, true);
     setFocusableState(listbox, true);
 
-    if (nativeSelect.options.length === 0) {
-      options.forEach((option) => {
-        const nativeOption = document.createElement('option');
-        nativeOption.value = option.dataset.selectOption || '';
-        nativeOption.textContent = option.textContent || '';
-        nativeSelect.appendChild(nativeOption);
+    const labelMap = new Map(definitions.map((entry) => [entry.value, entry.label]));
+    let options = [];
+    let activeIndex = Math.max(0, definitions.findIndex((entry) => entry.value === nativeSelect.value));
+
+    function renderOptions() {
+      if (options.length) return;
+      listbox.innerHTML = '';
+      options = definitions.map((entry, index) => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'custom-select-option';
+        option.id = `${kind || 'select'}-filter-option-${entry.value.replace(/_/g, '-')}`;
+        option.setAttribute('role', 'option');
+        option.dataset.selectOption = entry.value;
+        option.setAttribute('aria-selected', 'false');
+        option.tabIndex = -1;
+        option.textContent = entry.label;
+        option.addEventListener('click', () => chooseByIndex(index));
+        option.addEventListener('mousemove', () => {
+          activeIndex = index;
+          option.tabIndex = 0;
+        });
+        listbox.appendChild(option);
+        return option;
       });
     }
 
-    let activeIndex = Math.max(0, options.findIndex((option) => option.dataset.selectOption === nativeSelect.value));
+    function unrenderOptions() {
+      options = [];
+      listbox.innerHTML = '';
+    }
 
     function syncSelection(value, emitChange = false) {
-      const selectedValue = value || options[0].dataset.selectOption;
+      const selectedValue = value || definitions[0].value;
       nativeSelect.value = selectedValue;
-      options.forEach((option, index) => {
-        const isSelected = option.dataset.selectOption === selectedValue;
-        option.setAttribute('aria-selected', String(isSelected));
-        if (isSelected && option.id) trigger.setAttribute('aria-activedescendant', option.id);
-        option.tabIndex = index === activeIndex ? 0 : -1;
-        option.classList.toggle('is-selected', isSelected);
-      });
 
-      const selectedOption = options.find((option) => option.dataset.selectOption === selectedValue) || options[0];
-      if (selectedOption) {
-        activeIndex = options.indexOf(selectedOption);
-        selectedOption.tabIndex = 0;
-        label.textContent = selectedOption.textContent;
+      if (options.length) {
+        options.forEach((option, index) => {
+          const isSelected = option.dataset.selectOption === selectedValue;
+          option.setAttribute('aria-selected', String(isSelected));
+          option.tabIndex = index === activeIndex ? 0 : -1;
+          option.classList.toggle('is-selected', isSelected);
+          if (isSelected && option.id) trigger.setAttribute('aria-activedescendant', option.id);
+        });
       }
 
-      if (emitChange) {
-        nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+      const selectedIndex = Math.max(0, definitions.findIndex((entry) => entry.value === selectedValue));
+      activeIndex = selectedIndex;
+      label.textContent = labelMap.get(selectedValue) || definitions[0].label;
+
+      if (emitChange) nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     function open() {
       closeAllCustomSelects(api);
+      renderOptions();
+      syncSelection(nativeSelect.value || definitions[0].value, false);
       root.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
       listbox.hidden = false;
@@ -698,22 +812,25 @@
       listbox.setAttribute('aria-hidden', 'true');
       setElementInert(listbox, true);
       setFocusableState(listbox, true);
+      unrenderOptions();
       if (returnFocus) trigger.focus({ preventScroll: true });
     }
 
     function chooseByIndex(index) {
-      const normalized = Math.max(0, Math.min(options.length - 1, index));
+      const normalized = Math.max(0, Math.min(definitions.length - 1, index));
       activeIndex = normalized;
-      syncSelection(options[normalized].dataset.selectOption, true);
+      syncSelection(definitions[normalized].value, true);
       close(true);
     }
 
     function moveActive(step) {
-      activeIndex = (activeIndex + step + options.length) % options.length;
-      options.forEach((option, index) => {
-        option.tabIndex = index === activeIndex ? 0 : -1;
-      });
-      options[activeIndex].focus({ preventScroll: true });
+      activeIndex = (activeIndex + step + definitions.length) % definitions.length;
+      if (options[activeIndex]) {
+        options.forEach((option, index) => {
+          option.tabIndex = index === activeIndex ? 0 : -1;
+        });
+        options[activeIndex].focus({ preventScroll: true });
+      }
     }
 
     trigger.addEventListener('click', () => {
@@ -737,9 +854,7 @@
         if (!root.classList.contains('open')) open();
         else moveActive(-1);
       }
-      if (event.key === 'Escape') {
-        close();
-      }
+      if (event.key === 'Escape') close();
     });
 
     listbox.addEventListener('keydown', (event) => {
@@ -754,12 +869,12 @@
       if (event.key === 'Home') {
         event.preventDefault();
         activeIndex = 0;
-        options[0].focus({ preventScroll: true });
+        if (options[0]) options[0].focus({ preventScroll: true });
       }
       if (event.key === 'End') {
         event.preventDefault();
-        activeIndex = options.length - 1;
-        options[activeIndex].focus({ preventScroll: true });
+        activeIndex = definitions.length - 1;
+        if (options[activeIndex]) options[activeIndex].focus({ preventScroll: true });
       }
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
@@ -769,36 +884,27 @@
         event.preventDefault();
         close(true);
       }
-      if (event.key === 'Tab') {
-        close(false);
-      }
-    });
-
-    options.forEach((option, index) => {
-      option.addEventListener('click', () => chooseByIndex(index));
-      option.addEventListener('mousemove', () => {
-        activeIndex = index;
-        option.tabIndex = 0;
-      });
+      if (event.key === 'Tab') close(false);
     });
 
     nativeSelect.addEventListener('change', () => {
       syncSelection(nativeSelect.value, false);
     });
 
-    syncSelection(nativeSelect.value || nativeSelect.options[0].value, false);
+    syncSelection(nativeSelect.value || definitions[0].value, false);
 
-    const api = {
+    return {
       root,
       close,
       isOpen: () => root.classList.contains('open')
     };
-    return api;
   }
 
 
 
   function enforceA11yLabels() {
+
+
     if (navToggle && !navToggle.getAttribute('aria-label')) {
       navToggle.setAttribute('aria-label', 'Toggle navigation menu');
     }
@@ -916,7 +1022,9 @@
 
   function openModalAtIndex(index, options = {}) {
     const { fromHashSync = false } = options;
-    if (!modal || index < 0 || index >= filtered.length) return;
+    if (index < 0 || index >= filtered.length) return;
+    ensureModalElements();
+    if (!modal) return;
     const item = filtered[index];
     if (!item) return;
     const wasOpen = isModalOpen();
@@ -968,6 +1076,8 @@
       setModalOpenState(false);
       modal.removeAttribute('data-gallery-mode');
       if (modalScroller) modalScroller.scrollTop = 0;
+      modal.remove();
+      modal = null;
     } finally {
       unlockScroll();
     }
@@ -994,46 +1104,7 @@
   if (collectionSelect) collectionSelect.addEventListener('change', (e) => { state.collection = e.target.value; runFilters(); });
   if (typeSelect) typeSelect.addEventListener('change', (e) => { state.type = e.target.value; runFilters(); });
   if (searchInput) searchInput.addEventListener('input', (e) => { state.search = e.target.value.trim().toLowerCase(); runFilters(); });
-  if (modalClose) modalClose.addEventListener('click', () => closeModal());
-  if (modalPrev) modalPrev.addEventListener('click', () => stepModal(-1));
-  if (modalNext) modalNext.addEventListener('click', () => stepModal(1));
-
   enforceA11yLabels();
-
-  if (modal) {
-    const modalPanel = modal.querySelector('.modal-panel');
-    let touchStartX = 0;
-    let touchStartY = 0;
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    modal.addEventListener('keydown', trapFocus);
-    if (modalHeroMedia) modalHeroMedia.addEventListener('click', (event) => {
-      const thumb = event.target.closest('[data-gallery-thumb]');
-      if (!thumb || currentModalIndex < 0 || currentModalIndex >= filtered.length) return;
-      const nextIndex = Number(thumb.dataset.galleryThumb);
-      if (Number.isNaN(nextIndex)) return;
-      renderModalGallery(filtered[currentModalIndex], nextIndex);
-      applyNoWidow(modalHeroMedia);
-      hydrateMediaFrames(modalHeroMedia);
-    });
-    if (modalPanel) {
-      modalPanel.addEventListener('touchstart', (event) => {
-        const touch = event.changedTouches && event.changedTouches[0];
-        if (!touch) return;
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-      }, { passive: true });
-
-      modalPanel.addEventListener('touchend', (event) => {
-        const touch = event.changedTouches && event.changedTouches[0];
-        if (!touch) return;
-        const deltaX = touch.clientX - touchStartX;
-        const deltaY = touch.clientY - touchStartY;
-        const swipeThreshold = 48;
-        if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaY) > Math.abs(deltaX) * 0.75) return;
-        stepModal(deltaX < 0 ? 1 : -1);
-      }, { passive: true });
-    }
-  }
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

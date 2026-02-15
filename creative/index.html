@@ -41,22 +41,8 @@
       </ul>
     </div>
   </header>
-  <main class="section"><div class="container"><div class="section-head reveal"><p class="kicker">Collection</p><h2 class="balance no-widow">Creative Collection</h2><p>This is a thin wrapper over the shared work app with "creative" preselected.</p><p data-results-count class="meta-line"></p></div><section class="filters reveal" aria-label="Filters"><div class="filter-row"><div class="select-wrap"><select class="control" data-filter-collection><option value="all">All collections</option><option value="systems">Systems</option><option value="collab">Collaboration & Live</option><option value="delivery">Delivery</option><option value="creative">Creative</option></select></div><div class="select-wrap"><select class="control" data-filter-type><option value="all">All types</option><option value="case_study">Case Study</option><option value="lab">Lab</option><option value="template">Template</option><option value="gallery">Gallery</option><option value="writing">Writing</option></select></div><input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" /></div></section><section class="section work-grid-section"><div class="card-grid" data-project-grid></div></section></div></main>
+  <main class="section"><div class="container"><div class="section-head reveal"><p class="kicker">Collection</p><h2 class="balance no-widow">Creative Collection</h2><p>This is a thin wrapper over the shared work app with "creative" preselected.</p><p data-results-count class="meta-line"></p></div><section class="filters reveal" aria-label="Filters"><div class="filter-row"><div class="select-wrap"><select class="control" data-filter-collection aria-hidden="true" tabindex="-1"></select></div><div class="select-wrap"><select class="control" data-filter-type aria-hidden="true" tabindex="-1"></select></div><input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" /></div></section><section class="section work-grid-section"><div class="card-grid" data-project-grid></div></section></div></main>
   <footer class="footer"><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div><div class="footer-grid"><div class="footer-block"><h4>Creative</h4><p>Focused collection view with shared UX.</p></div><div class="footer-block"><h4>Browse</h4><p><a href="../work/">All work</a><br><a href="../about/">About</a></p></div><div class="footer-block"><h4>Contact</h4><p><a href="../contact/">Get in touch</a></p></div><div class="footer-block"><h4>Resume</h4><p><a href="/assets/resume-placeholder.pdf">Download PDF</a></p></div></div></div></footer>
-  <div class="modal-overlay" data-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-panel">
-      <div class="modal-header"><h2 class="modal-title" id="modal-title" data-modal-title></h2><div class="modal-actions"><button class="modal-nav" type="button" data-modal-prev aria-label="Previous project"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M10.5 3.5L6 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="modal-nav" type="button" data-modal-next aria-label="Next project"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L10 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="modal-close" type="button" data-modal-close aria-label="Close dialog"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div></div>
-      <div class="modal-scroller" data-modal-scroller>
-        <div class="modal-body">
-          <section class="modal-hero" aria-label="Project overview">
-            <div class="modal-hero-copy"><p class="meta-line" data-modal-meta></p><p class="modal-summary" data-modal-summary></p></div>
-            <div class="modal-hero-media" data-modal-hero-media></div>
-          </section>
-          <div class="modal-content" data-modal-body></div>
-        </div>
-      </div>
-    </div>
-  </div>
   <script src="/app.js" defer></script>
 </body>
 </html>
