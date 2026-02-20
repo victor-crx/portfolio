@@ -1,0 +1,9 @@
+name = "portfolio-api"
+main = "src/index.ts"
+compatibility_date = "2026-02-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "portfolio-db"
+database_id = "local-dev"
+migrations_dir = "../../packages/db/migrations"
