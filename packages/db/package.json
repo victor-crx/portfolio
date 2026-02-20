@@ -1,0 +1,13 @@
+{
+  "name": "@portfolio/db",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "seed:local": "node src/seed-from-projects.mjs --db portfolio-db --local",
+    "seed:remote": "node src/seed-from-projects.mjs --db portfolio-db"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.10"
+  }
+}

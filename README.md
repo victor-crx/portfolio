@@ -105,3 +105,7 @@ Also keep heading hierarchy semantic (`h1` then `h2` etc.) and ensure image `alt
 ## Privacy / sanitization note
 
 Current sample content avoids real organization names, domains, private network details, and sensitive implementation specifics.
+
+## Backend foundations
+
+See `docs/backend.md` for Cloudflare Worker + D1 local development and migration/seed instructions.

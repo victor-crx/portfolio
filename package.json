@@ -1,0 +1,14 @@
+{
+  "name": "portfolio-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "api:dev": "npm --workspace @portfolio/api run dev",
+    "api:typecheck": "npm --workspace @portfolio/api run typecheck",
+    "db:seed": "npm --workspace @portfolio/db run seed:local"
+  }
+}
