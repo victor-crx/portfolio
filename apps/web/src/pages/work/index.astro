@@ -55,13 +55,14 @@
   </script>
 </head>
 <body data-default-collection="all">
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="/" aria-label="Victor Lane home">
-        <img src="/assets/logo.svg" alt="Victor Lane" />
+        <img src="/assets/logo.svg" alt="Victor Lane" width="220" height="40" decoding="async" />
       </a>
       <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button>
-      <ul class="nav-links" id="site-nav">
+      <ul class="nav-links" id="site-nav" aria-label="Primary">
         <li><a href="/">Home</a></li>
         <li><a href="/work/">Work</a></li>
         <li><a href="/about/">About</a></li>
@@ -70,7 +71,7 @@
     </div>
   </header>
 
-  <main class="section">
+  <main id="main-content" class="section">
     <div class="container">
       <div class="section-head reveal"><p class="kicker">Index</p><h2 class="balance no-widow">Master Work Grid</h2><p>Filter by collection lane, project type, and search text. Open any card for full problem/constraints/actions/results details.</p><p data-results-count class="meta-line"></p></div>
 

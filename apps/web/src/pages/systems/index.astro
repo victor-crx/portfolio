@@ -27,13 +27,14 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body data-default-collection="systems">
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="/" aria-label="Victor Lane home">
-        <img src="/assets/logo.svg" alt="Victor Lane" />
+        <img src="/assets/logo.svg" alt="Victor Lane" width="220" height="40" decoding="async" />
       </a>
       <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button>
-      <ul class="nav-links" id="site-nav">
+      <ul class="nav-links" id="site-nav" aria-label="Primary">
         <li><a href="/">Home</a></li>
         <li><a href="/work/">Work</a></li>
         <li><a href="/about/">About</a></li>
@@ -41,7 +42,7 @@
       </ul>
     </div>
   </header>
-  <main class="section"><div class="container"><div class="section-head reveal"><p class="kicker">Collection</p><h2 class="balance no-widow">Systems Collection</h2><p>This is a thin wrapper over the shared work app with "systems" preselected.</p><p data-results-count class="meta-line"></p></div><section class="filters" aria-label="Filters"><div class="filter-row"><div class="select-wrap"><select class="control" data-filter-collection aria-hidden="true" tabindex="-1"></select></div><div class="select-wrap"><select class="control" data-filter-type aria-hidden="true" tabindex="-1"></select></div><input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" /></div></section><section class="section work-grid-section"><div class="card-grid" data-reveal-stagger data-project-grid></div></section></div></main>
+  <main id="main-content" class="section"><div class="container"><div class="section-head reveal"><p class="kicker">Collection</p><h2 class="balance no-widow">Systems Collection</h2><p>This is a thin wrapper over the shared work app with "systems" preselected.</p><p data-results-count class="meta-line"></p></div><section class="filters" aria-label="Filters"><div class="filter-row"><div class="select-wrap"><select class="control" data-filter-collection aria-hidden="true" tabindex="-1"></select></div><div class="select-wrap"><select class="control" data-filter-type aria-hidden="true" tabindex="-1"></select></div><input class="control" data-filter-search type="search" placeholder="Search title, summary, tags, tools" /></div></section><section class="section work-grid-section"><div class="card-grid" data-reveal-stagger data-project-grid></div></section></div></main>
   <footer class="footer"><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div><div class="footer-grid"><div class="footer-block"><h4>Systems</h4><p>Focused collection view with shared UX.</p></div><div class="footer-block"><h4>Browse</h4><p><a href="../work/">All work</a><br><a href="../about/">About</a></p></div><div class="footer-block"><h4>Contact</h4><p><a href="../contact/">Get in touch</a></p></div><div class="footer-block"><h4>Resume</h4><p><a href="/assets/resume-placeholder.pdf">Download PDF</a></p></div></div></div></footer>
   <script src="/app.js" defer></script>
 </body>
