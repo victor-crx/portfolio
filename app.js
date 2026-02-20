@@ -988,16 +988,81 @@
   }
 
   const projectsUrl = '/projects.json';
+  const projectsApiUrl = '/api/projects';
+  const dataRequestTimeoutMs = 2000;
+  const apiPageSize = 100;
 
-  fetch(projectsUrl)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} while requesting ${projectsUrl}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      projects = data.projects || [];
+  function fetchJsonWithTimeout(url) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), dataRequestTimeoutMs);
+    return fetch(url, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status} while requesting ${url}`);
+        return response.json();
+      })
+      .finally(() => window.clearTimeout(timeout));
+  }
+
+  function mapApiProjectToLegacyShape(item) {
+    return {
+      id: item.id,
+      title: item.title,
+      summary: item.summary,
+      type: item.type,
+      collections: Array.isArray(item.collections) ? item.collections : [],
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      tools: Array.isArray(item.tools) ? item.tools : [],
+      date: typeof item.project_date === 'string' && item.project_date ? item.project_date.slice(0, 7) : '',
+      sections: {
+        problem: item.problem || '',
+        constraints: item.constraints_text || item.constraints || '',
+        actions: Array.isArray(item.actions) ? item.actions : [],
+        results: Array.isArray(item.results) ? item.results : [],
+        next_steps: Array.isArray(item.nextSteps) ? item.nextSteps : (Array.isArray(item.next_steps) ? item.next_steps : [])
+      },
+      artifacts: Array.isArray(item.media) ? item.media : [],
+      images: Array.isArray(item.media)
+        ? item.media
+          .map((asset) => (asset && typeof asset.path === 'string' ? asset.path : ''))
+          .filter(Boolean)
+        : []
+    };
+  }
+
+  async function loadProjectsFromApi() {
+    const firstPageUrl = `${projectsApiUrl}?page=1&pageSize=${apiPageSize}`;
+    const firstPage = await fetchJsonWithTimeout(firstPageUrl);
+    const firstBatch = Array.isArray(firstPage.data) ? firstPage.data : [];
+    const pagination = firstPage.pagination || {};
+    const total = Number.isFinite(pagination.total) ? pagination.total : firstBatch.length;
+    const totalPages = Math.max(1, Math.ceil(total / apiPageSize));
+    const summaries = [...firstBatch];
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      const pageData = await fetchJsonWithTimeout(`${projectsApiUrl}?page=${page}&pageSize=${apiPageSize}`);
+      summaries.push(...(Array.isArray(pageData.data) ? pageData.data : []));
+    }
+
+    const detailResponses = await Promise.all(
+      summaries.map((summary) => fetchJsonWithTimeout(`${projectsApiUrl}/${encodeURIComponent(summary.id)}`))
+    );
+
+    return detailResponses.map(mapApiProjectToLegacyShape);
+  }
+
+  async function loadProjectsWithFallback() {
+    try {
+      return await loadProjectsFromApi();
+    } catch (error) {
+      void error;
+      const fallbackData = await fetchJsonWithTimeout(projectsUrl);
+      return fallbackData.projects || [];
+    }
+  }
+
+  loadProjectsWithFallback()
+    .then((loadedProjects) => {
+      projects = loadedProjects;
       if (collectionSelect) collectionSelect.value = bodyDefault;
       runFilters();
     })
