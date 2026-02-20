@@ -1,0 +1,15 @@
+{
+  "name": "portfolio-astro",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "sync:static": "node scripts/sync-static.mjs",
+    "dev": "npm run sync:static && astro dev",
+    "build": "npm run sync:static && astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^5.2.5"
+  }
+}
