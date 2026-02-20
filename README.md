@@ -69,6 +69,9 @@ No framework or build step is required.
 
 If your browser blocks `fetch()` from `file://`, run a lightweight local static server for development only.
 
+PR3 update: the work data loader now requests `/api/projects` first (including paginated API reads) and automatically falls back to `/projects.json`.
+This keeps offline/local static development working without any Cloudflare API setup.
+
 ## Deploy via GitHub → Cloudflare Pages (no build step)
 
 1. Push the repository to GitHub.
