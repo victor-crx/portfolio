@@ -1,0 +1,16 @@
+body.admin {
+  font-family: Inter, system-ui, sans-serif;
+  margin: 0;
+  background: #0b0b0d;
+  color: #f5f5f5;
+}
+.admin-wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.admin-grid { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+.admin-nav a { display:block; color:#f5f5f5; text-decoration:none; padding:8px 10px; border-radius:6px; }
+.admin-nav a.active, .admin-nav a:hover { background:#1d1d24; }
+.admin-panel { background:#121219; border:1px solid #2a2a33; border-radius:8px; padding:16px; }
+.admin-form { display:grid; gap:8px; margin-bottom:16px; }
+.admin-form input,.admin-form textarea,.admin-form select, .admin-form button { padding:8px; border-radius:6px; border:1px solid #333; background:#0f0f14; color:#fff; }
+.admin-table { width:100%; border-collapse:collapse; }
+.admin-table td,.admin-table th { border-bottom:1px solid #2b2b35; padding:8px; text-align:left; vertical-align:top; }
+.admin-login { max-width:420px; margin:10vh auto; }
