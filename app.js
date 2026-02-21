@@ -1023,7 +1023,12 @@
       artifacts: Array.isArray(item.media) ? item.media : [],
       images: Array.isArray(item.media)
         ? item.media
-          .map((asset) => (asset && typeof asset.path === 'string' ? asset.path : ''))
+          .map((asset) => {
+            if (!asset || typeof asset !== 'object') return '';
+            if (typeof asset.publicUrl === 'string') return asset.publicUrl;
+            if (typeof asset.path === 'string') return asset.path;
+            return '';
+          })
           .filter(Boolean)
         : []
     };
@@ -1310,4 +1315,36 @@
   }
 
   syncModalFromHash('init');
+
+  const contactForm = document.querySelector('[data-contact-form]');
+  if (contactForm) {
+    const statusNode = document.querySelector('[data-contact-status]');
+    contactForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(contactForm);
+      const payload = {
+        inquiry_type: formData.get('inquiry_type') || 'general',
+        name: formData.get('name') || '',
+        email: formData.get('email') || '',
+        subject: formData.get('subject') || '',
+        message: formData.get('message') || '',
+        turnstileToken: formData.get('cf-turnstile-response') || ''
+      };
+
+      if (statusNode) statusNode.textContent = 'Sending...';
+      try {
+        const response = await fetch('/api/inquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        contactForm.reset();
+        if (statusNode) statusNode.textContent = 'Message sent. Thank you.';
+      } catch (error) {
+        if (statusNode) statusNode.textContent = `Unable to submit right now. ${error instanceof Error ? error.message : ''}`;
+      }
+    });
+  }
+
 })();

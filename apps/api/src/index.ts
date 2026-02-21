@@ -2,7 +2,10 @@ import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;
+  R2_BUCKET: R2Bucket;
   ADMIN_TOKEN?: string;
+  R2_PUBLIC_BASE_URL?: string;
+  TURNSTILE_SECRET_KEY?: string;
 };
 
 type AdminRole = 'admin' | 'reviewer';
@@ -37,6 +40,36 @@ const parseJsonField = <T>(value: string | null | undefined, fallback: T): T => 
 };
 
 const nowIso = () => new Date().toISOString();
+
+const MAX_MEDIA_SIZE = 10 * 1024 * 1024;
+const ALLOWED_MEDIA_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+
+const sanitizeText = (value: unknown, maxLen = 4000) =>
+  String(value ?? '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .trim()
+    .slice(0, maxLen);
+
+const slugifyFilename = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 80) || 'file';
+
+const extForMimeType = (mimeType: string) => {
+  if (mimeType === 'image/jpeg') return 'jpg';
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  if (mimeType === 'application/pdf') return 'pdf';
+  return '';
+};
+
+const getClientIp = (c: { req: { header: (name: string) => string | undefined } }) => {
+  const cfIp = c.req.header('CF-Connecting-IP') ?? c.req.header('x-forwarded-for') ?? '';
+  return cfIp.split(',')[0]?.trim() || 'unknown';
+};
 
 const getStatus = (input: unknown, fallback: 'draft' | 'published' = 'draft') =>
   input === 'published' ? 'published' : fallback;
@@ -205,9 +238,12 @@ app.get('/api/projects/:id', async (c) => {
       (
         SELECT json_group_array(
           json_object(
-            'type', ma.asset_type,
-            'label', ma.label,
-            'path', ma.path,
+            'id', ma.id,
+            'key', ma.key,
+            'publicUrl', ma.public_url,
+            'mimeType', ma.mime_type,
+            'altText', ma.alt_text,
+            'visibility', ma.visibility,
             'sortOrder', pm.sort_order
           )
         )
@@ -264,6 +300,77 @@ app.get('/api/site-blocks', async (c) => {
     .prepare("SELECT * FROM site_blocks WHERE status = 'published' ORDER BY page ASC, COALESCE(featured_order, 999999) ASC, block_key ASC, id ASC")
     .all();
   return c.json({ data: rows.results ?? [] });
+});
+
+app.post('/api/inquiries', async (c) => {
+  const body = await c.req.json<Record<string, unknown>>();
+  const token = String(body.turnstileToken || '').trim();
+  if (!token) return c.json({ error: 'Turnstile token required' }, 400);
+
+  const ip = getClientIp(c);
+  const oneHourAgoIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const rate = await c.env.DB
+    .prepare('SELECT COUNT(*) AS total FROM inquiries WHERE source = ? AND created_at >= ?')
+    .bind(ip, oneHourAgoIso)
+    .first<{ total: number }>();
+  if ((rate?.total ?? 0) >= 10) return c.json({ error: 'Rate limit exceeded' }, 429);
+
+  const verifyBody = new URLSearchParams({
+    secret: c.env.TURNSTILE_SECRET_KEY ?? '',
+    response: token,
+    remoteip: ip
+  });
+
+  const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: verifyBody
+  });
+  const verifyResult = (await verifyResponse.json()) as { success?: boolean; 'error-codes'?: string[] };
+  if (!verifyResult?.success) {
+    return c.json({ error: 'Turnstile verification failed', details: verifyResult?.['error-codes'] ?? [] }, 400);
+  }
+
+  const inquiryType = sanitizeText(body.inquiry_type || 'general', 40) || 'general';
+  const name = sanitizeText(body.name, 120);
+  const email = sanitizeText(body.email, 254).toLowerCase();
+  const subject = sanitizeText(body.subject, 200);
+  const message = sanitizeText(body.message, 4000);
+  const createdAt = nowIso();
+
+  const result = await c.env.DB
+    .prepare(
+      `INSERT INTO inquiries (inquiry_type, name, email, subject, message, payload_json, source, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)`
+    )
+    .bind(
+      inquiryType,
+      name,
+      email,
+      subject,
+      message,
+      JSON.stringify({ userAgent: c.req.header('user-agent') ?? '', turnstile: 'verified' }),
+      ip,
+      createdAt
+    )
+    .run();
+
+  return c.json({ ok: true, id: result.meta.last_row_id ?? null });
+});
+
+app.get('/api/media/:id', async (c) => {
+  const id = c.req.param('id');
+  const media = await c.env.DB
+    .prepare('SELECT * FROM media_assets WHERE id = ? LIMIT 1')
+    .bind(id)
+    .first<Record<string, unknown> & { visibility?: string }>();
+
+  if (!media) return c.json({ error: 'Not found' }, 404);
+  if (media.visibility === 'private') {
+    // TODO(PR future): return signed URL once private media delivery is implemented.
+    return c.json({ error: 'Private media delivery not implemented yet' }, 501);
+  }
+  return c.json(media);
 });
 
 app.use('/api/admin/*', async (c, next) => {
@@ -696,6 +803,129 @@ app.put('/api/admin/site-blocks/:id', async (c) => {
     )
     .run();
   await audit(c.env.DB, c.get('adminIdentity'), 'update', 'site_block', id, { status });
+  return c.json({ ok: true });
+});
+
+app.get('/api/admin/media', async (c) => {
+  const identity = c.get('adminIdentity');
+  const q = sanitizeText(c.req.query('q') ?? '', 120);
+  const where = q ? 'WHERE key LIKE ? OR public_url LIKE ? OR alt_text LIKE ?' : '';
+  const stmt = c.env.DB.prepare(`SELECT * FROM media_assets ${where} ORDER BY updated_at DESC, created_at DESC LIMIT 200`);
+  const rows = q ? await stmt.bind(`%${q}%`, `%${q}%`, `%${q}%`).all() : await stmt.all();
+  await audit(c.env.DB, identity, 'view', 'media_asset', null, { q });
+  return c.json({ data: rows.results ?? [] });
+});
+
+app.post('/api/admin/media', async (c) => {
+  const identity = c.get('adminIdentity');
+  if (identity.role !== 'admin') return c.json({ error: 'Forbidden' }, 403);
+
+  const formData = await c.req.formData();
+  const file = formData.get('file');
+  if (!(file instanceof File)) return c.json({ error: 'file is required' }, 400);
+  if (!ALLOWED_MEDIA_MIME.has(file.type)) return c.json({ error: 'Unsupported media type' }, 400);
+  if (file.size > MAX_MEDIA_SIZE) return c.json({ error: 'File too large (max 10MB)' }, 400);
+
+  const ext = extForMimeType(file.type);
+  if (!ext) return c.json({ error: 'Unsupported media type' }, 400);
+
+  const originalName = file.name.replace(/\.[^.]+$/, '');
+  const slug = slugifyFilename(originalName);
+  const now = new Date();
+  const yyyy = String(now.getUTCFullYear());
+  const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const key = `media/${yyyy}/${mm}/${crypto.randomUUID()}-${slug}.${ext}`;
+
+  await c.env.R2_BUCKET.put(key, await file.arrayBuffer(), {
+    httpMetadata: {
+      contentType: file.type
+    }
+  });
+
+  const publicBase = (c.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/$/, '');
+  const publicUrl = publicBase ? `${publicBase}/${key}` : key;
+  const altText = sanitizeText(formData.get('alt_text'), 300);
+  const createdAt = nowIso();
+
+  const result = await c.env.DB
+    .prepare(
+      `INSERT INTO media_assets (key, public_url, mime_type, size_bytes, alt_text, visibility, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'public', ?, ?)`
+    )
+    .bind(key, publicUrl, file.type, file.size, altText, createdAt, createdAt)
+    .run();
+
+  await audit(c.env.DB, identity, 'create', 'media_asset', result.meta.last_row_id ?? null, { key, mimeType: file.type, sizeBytes: file.size });
+
+  return c.json({ ok: true, id: result.meta.last_row_id ?? null, key, public_url: publicUrl });
+});
+
+app.put('/api/admin/media/:id', async (c) => {
+  const identity = c.get('adminIdentity');
+  if (identity.role !== 'admin') return c.json({ error: 'Forbidden' }, 403);
+  const id = c.req.param('id');
+  const body = await c.req.json<Record<string, unknown>>();
+  const altText = sanitizeText(body.alt_text, 300);
+  const visibility = body.visibility === 'private' ? 'private' : 'public';
+
+  await c.env.DB
+    .prepare('UPDATE media_assets SET alt_text = ?, visibility = ?, updated_at = ? WHERE id = ?')
+    .bind(altText, visibility, nowIso(), id)
+    .run();
+
+  await audit(c.env.DB, identity, 'update', 'media_asset', id, { visibility });
+  return c.json({ ok: true });
+});
+
+app.get('/api/admin/projects/:id/media', async (c) => {
+  const projectId = c.req.param('id');
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT pm.project_id, pm.media_asset_id, pm.sort_order, ma.key, ma.public_url, ma.mime_type, ma.alt_text, ma.visibility
+       FROM project_media pm
+       JOIN media_assets ma ON ma.id = pm.media_asset_id
+       WHERE pm.project_id = ?
+       ORDER BY pm.sort_order ASC, pm.media_asset_id ASC`
+    )
+    .bind(projectId)
+    .all();
+  return c.json({ data: rows.results ?? [] });
+});
+
+app.post('/api/admin/projects/:id/media', async (c) => {
+  const identity = c.get('adminIdentity');
+  if (identity.role !== 'admin') return c.json({ error: 'Forbidden' }, 403);
+  const projectId = c.req.param('id');
+  const body = await c.req.json<Record<string, unknown>>();
+  const mediaAssetId = Number(body.media_asset_id);
+  const sortOrder = Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0;
+  if (!Number.isFinite(mediaAssetId) || mediaAssetId <= 0) return c.json({ error: 'media_asset_id is required' }, 400);
+
+  await c.env.DB
+    .prepare(
+      `INSERT INTO project_media (project_id, media_asset_id, sort_order, role)
+       VALUES (?, ?, ?, 'artifact')
+       ON CONFLICT(project_id, media_asset_id) DO UPDATE SET sort_order = excluded.sort_order`
+    )
+    .bind(projectId, mediaAssetId, sortOrder)
+    .run();
+
+  await audit(c.env.DB, identity, 'attach', 'project_media', `${projectId}:${mediaAssetId}`, { sortOrder });
+  return c.json({ ok: true });
+});
+
+app.delete('/api/admin/projects/:id/media/:mediaAssetId', async (c) => {
+  const identity = c.get('adminIdentity');
+  if (identity.role !== 'admin') return c.json({ error: 'Forbidden' }, 403);
+  const projectId = c.req.param('id');
+  const mediaAssetId = c.req.param('mediaAssetId');
+
+  await c.env.DB
+    .prepare('DELETE FROM project_media WHERE project_id = ? AND media_asset_id = ?')
+    .bind(projectId, mediaAssetId)
+    .run();
+
+  await audit(c.env.DB, identity, 'detach', 'project_media', `${projectId}:${mediaAssetId}`);
   return c.json({ ok: true });
 });
 
