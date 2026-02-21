@@ -1,9 +1,13 @@
 import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { resolve, join } from 'node:path';
+import * as path from 'node:path';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const repoRoot = resolve(new URL('../../..', import.meta.url).pathname);
+const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, "..", "..", "..");
 
 const getArg = (name) => {
   const idx = process.argv.indexOf(name);
@@ -12,14 +16,13 @@ const getArg = (name) => {
 
 const dbName = getArg('--db');
 const local = process.argv.includes('--local');
-const inputPath =
-  getArg('--input') ?? resolve(repoRoot, 'apps/web/public/projects.json');
+const inputPath = getArg('--input') ?? path.resolve(repoRoot, 'apps/web/public/projects.json');
 
 if (!dbName) {
   throw new Error('Missing required --db argument');
 }
 
-const tryPaths = [inputPath, resolve(repoRoot, 'projects.json')];
+const tryPaths = [inputPath, path.resolve(repoRoot, 'projects.json')];
 let jsonRaw = '';
 for (const p of tryPaths) {
   try {
@@ -40,7 +43,6 @@ const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
 
 const sql = [];
 sql.push('PRAGMA foreign_keys = ON;');
-sql.push('BEGIN TRANSACTION;');
 
 for (const project of payload.projects ?? []) {
   const slug = project.slug ?? project.id;
@@ -124,22 +126,31 @@ sql.push("INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_
 sql.push("INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json) VALUES ('about', 'intro', 'About Intro', 'Replace with CMS-managed about copy.', '{}');");
 sql.push("INSERT OR IGNORE INTO services (slug, title, summary, body, sort_order) VALUES ('fractional-ops', 'Fractional Operations Leadership', 'Operational leadership and delivery orchestration.', 'Placeholder service description.', 1);");
 sql.push("INSERT OR IGNORE INTO certifications (title, issuer, issued_on) VALUES ('Example Certification', 'Example Issuer', '2024-01');");
-sql.push('COMMIT;');
 
-const tempDir = await mkdtemp(join(tmpdir(), 'portfolio-seed-'));
-const sqlFile = join(tempDir, 'seed.sql');
+const tempDir = await mkdtemp(path.join(tmpdir(), 'portfolio-seed-'));
+const sqlFile = path.join(tempDir, 'seed.sql');
+const wranglerConfig = path.join(repoRoot, 'apps', 'api', 'wrangler.toml');
 await writeFile(sqlFile, sql.join('\n'), 'utf8');
 
 await new Promise((resolvePromise, rejectPromise) => {
-  const args = ['wrangler', 'd1', 'execute', dbName, '--file', sqlFile];
-  if (local) {
-    args.push('--local');
-  }
+  const args = [
+  'wrangler',
+  '--config', wranglerConfig,
+  'd1', 'execute', dbName,
+  '--file', sqlFile,
+];
 
-  const child = spawn('npx', args, {
-    cwd: repoRoot,
-    stdio: 'inherit'
-  });
+if (local) {
+  args.push('--local');
+} else {
+  args.push('--remote');
+}
+
+const child = spawn(NPX, args, {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  shell: process.platform === 'win32'
+});
 
   child.on('exit', (code) => {
     if (code === 0) {
