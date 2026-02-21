@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Admin Projects</title><link rel='stylesheet' href='/admin.css'></head>
+<body class='admin' data-admin-page='projects'>
+<div class='admin-wrap admin-grid'>
+  <aside class='admin-panel admin-nav' data-admin-nav>
+    <h2>Admin</h2>
+    <a href='/admin/'>Dashboard</a>
+    <a href='/admin/projects/'>Projects</a>
+    <a href='/admin/services/'>Services</a>
+    <a href='/admin/certifications/'>Certifications</a>
+    <a href='/admin/labs/'>Labs</a>
+    <a href='/admin/site/'>Site Blocks</a>
+    <a href='/admin/inquiries/'>Inquiries</a>
+    <a href='/admin/audit/'>Audit</a>
+    <button data-admin-logout>Logout</button>
+  </aside>
+  <main class='admin-panel'>
+    <h1>Projects</h1><form id='admin-form' class='admin-form'>
+<input name='id' placeholder='id (blank=create)'><input name='slug' placeholder='slug'><input name='title' placeholder='title' required><input name='summary' placeholder='summary'><input name='type' placeholder='type'><input name='project_date' placeholder='project_date'><input name='status' placeholder='draft/published'><input name='featured_order' placeholder='featured_order'><textarea name='collections' placeholder='["systems"]'></textarea><textarea name='problem' placeholder='problem'></textarea><textarea name='constraints_text' placeholder='constraints'></textarea><textarea name='actions' placeholder='["action"]'></textarea><textarea name='results' placeholder='["result"]'></textarea><textarea name='next_steps' placeholder='["next"]'></textarea><button type='submit'>Save</button></form>
+<table class='admin-table'><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
+  </main>
+</div>
+<script src='/admin.js' defer></script>
+</body></html>

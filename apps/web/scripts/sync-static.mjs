@@ -12,6 +12,8 @@ const copyTasks = [
   [resolve(repoRoot, 'assets'), resolve(publicDir, 'assets')],
   [resolve(repoRoot, 'styles.css'), resolve(publicDir, 'styles.css')],
   [resolve(repoRoot, 'app.js'), resolve(publicDir, 'app.js')],
+  [resolve(repoRoot, 'admin.js'), resolve(publicDir, 'admin.js')],
+  [resolve(repoRoot, 'admin.css'), resolve(publicDir, 'admin.css')],
   [resolve(repoRoot, 'projects.json'), resolve(publicDir, 'projects.json')]
 ];
 

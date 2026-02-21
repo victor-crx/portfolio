@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Admin Site Blocks</title><link rel='stylesheet' href='/admin.css'></head>
+<body class='admin' data-admin-page='site'>
+<div class='admin-wrap admin-grid'>
+  <aside class='admin-panel admin-nav' data-admin-nav>
+    <h2>Admin</h2>
+    <a href='/admin/'>Dashboard</a>
+    <a href='/admin/projects/'>Projects</a>
+    <a href='/admin/services/'>Services</a>
+    <a href='/admin/certifications/'>Certifications</a>
+    <a href='/admin/labs/'>Labs</a>
+    <a href='/admin/site/'>Site Blocks</a>
+    <a href='/admin/inquiries/'>Inquiries</a>
+    <a href='/admin/audit/'>Audit</a>
+    <button data-admin-logout>Logout</button>
+  </aside>
+  <main class='admin-panel'>
+    <h1>Site Blocks</h1><form id='admin-form' class='admin-form'><input name='id' placeholder='id (blank=create)'><input name='page' placeholder='page'><input name='block_key' placeholder='block_key'><input name='title' placeholder='title'><textarea name='body' placeholder='body'></textarea><textarea name='data' placeholder='{"k":"v"}'></textarea><input name='status' placeholder='draft/published'><input name='featured_order' placeholder='featured_order'><button type='submit'>Save</button></form><table class='admin-table'><thead><tr><th>ID</th><th>Page</th><th>Block</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
+  </main>
+</div>
+<script src='/admin.js' defer></script>
+</body></html>

@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS projects (
   actions_json TEXT NOT NULL DEFAULT '[]',
   results_json TEXT NOT NULL DEFAULT '[]',
   next_steps_json TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'draft',
+  published_at TEXT,
+  featured_order INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -71,6 +74,9 @@ CREATE TABLE IF NOT EXISTS services (
   summary TEXT NOT NULL,
   body TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'draft',
+  published_at TEXT,
+  featured_order INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -83,7 +89,11 @@ CREATE TABLE IF NOT EXISTS certifications (
   credential_url TEXT,
   issued_on TEXT,
   expires_on TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  status TEXT NOT NULL DEFAULT 'draft',
+  published_at TEXT,
+  featured_order INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS labs (
@@ -92,9 +102,12 @@ CREATE TABLE IF NOT EXISTS labs (
   slug TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
   summary TEXT,
-  status TEXT NOT NULL DEFAULT 'published',
+  status TEXT NOT NULL DEFAULT 'draft',
   published_on TEXT,
+  published_at TEXT,
+  featured_order INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
 );
 
@@ -105,6 +118,9 @@ CREATE TABLE IF NOT EXISTS site_blocks (
   title TEXT,
   body TEXT,
   data_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'draft',
+  published_at TEXT,
+  featured_order INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (page, block_key)
