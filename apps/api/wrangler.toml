@@ -5,5 +5,5 @@ compatibility_date = "2026-02-20"
 [[d1_databases]]
 binding = "DB"
 database_name = "portfolio-db"
-database_id = "local-dev"
+database_id = "4a603f63-1153-4b44-b548-5682548c618c"
 migrations_dir = "../../packages/db/migrations"
