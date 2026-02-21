@@ -1,22 +1,34 @@
 (function () {
   const tokenKey = 'admin_token';
   const page = document.body.dataset.adminPage;
+  const isLocalHost = /(^localhost$)|(^127\.0\.0\.1$)|(^\[::1\]$)|(^::1$)/.test(window.location.hostname);
   const token = sessionStorage.getItem(tokenKey) || '';
 
   const api = async (path, options = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+
+    if (isLocalHost && token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch(path, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${sessionStorage.getItem(tokenKey) || ''}`,
-        ...(options.headers || {})
-      }
+      headers
     });
 
     if (response.status === 401) {
-      sessionStorage.removeItem(tokenKey);
-      window.location.href = '/admin/login/';
+      if (isLocalHost) {
+        sessionStorage.removeItem(tokenKey);
+        window.location.href = '/admin/login/';
+      }
       throw new Error('Unauthorized');
+    }
+
+    if (response.status === 403) {
+      throw new Error('Forbidden');
     }
 
     if (!response.ok) {
@@ -27,8 +39,12 @@
   };
 
   const requireAuth = () => {
-    if (!token && page !== 'login') {
+    if (isLocalHost && !token && page !== 'login') {
       window.location.href = '/admin/login/';
+      return false;
+    }
+    if (!isLocalHost && page === 'login') {
+      window.location.href = '/admin/';
       return false;
     }
     return true;
@@ -41,9 +57,19 @@
         link.classList.add('active');
       }
     });
+
+    const logout = nav.querySelector('[data-admin-logout]');
+    if (logout && !isLocalHost) {
+      logout.style.display = 'none';
+    }
   }
 
   if (page === 'login') {
+    if (!isLocalHost) {
+      window.location.href = '/admin/';
+      return;
+    }
+
     const form = document.querySelector('#admin-login-form');
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -139,56 +165,25 @@
   }
 
   if (page === 'projects') {
-    wireCrud({
-      listPath: '/api/admin/projects',
-      tableFields: ['id', 'title', 'status', 'updated_at'],
-      tableBodySelector: '#admin-table-body',
-      formSelector: '#admin-form'
-    });
+    wireCrud({ listPath: '/api/admin/projects', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   }
-
   if (page === 'services') {
-    wireCrud({
-      listPath: '/api/admin/services',
-      tableFields: ['id', 'title', 'status', 'updated_at'],
-      tableBodySelector: '#admin-table-body',
-      formSelector: '#admin-form'
-    });
+    wireCrud({ listPath: '/api/admin/services', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   }
-
   if (page === 'certifications') {
-    wireCrud({
-      listPath: '/api/admin/certifications',
-      tableFields: ['id', 'title', 'status', 'updated_at'],
-      tableBodySelector: '#admin-table-body',
-      formSelector: '#admin-form'
-    });
+    wireCrud({ listPath: '/api/admin/certifications', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   }
-
   if (page === 'labs') {
-    wireCrud({
-      listPath: '/api/admin/labs',
-      tableFields: ['id', 'title', 'status', 'updated_at'],
-      tableBodySelector: '#admin-table-body',
-      formSelector: '#admin-form'
-    });
+    wireCrud({ listPath: '/api/admin/labs', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   }
-
   if (page === 'site') {
-    wireCrud({
-      listPath: '/api/admin/site-blocks',
-      tableFields: ['id', 'page', 'block_key', 'status', 'updated_at'],
-      tableBodySelector: '#admin-table-body',
-      formSelector: '#admin-form'
-    });
+    wireCrud({ listPath: '/api/admin/site-blocks', tableFields: ['id', 'page', 'block_key', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   }
-
   if (page === 'inquiries') {
     api('/api/admin/inquiries').then((payload) => {
       renderRows(document.querySelector('#admin-table-body'), payload.data || [], ['id', 'inquiry_type', 'email', 'status', 'created_at']);
     });
   }
-
   if (page === 'audit') {
     api('/api/admin/audit').then((payload) => {
       renderRows(document.querySelector('#admin-table-body'), payload.data || [], ['id', 'action', 'entity_type', 'entity_id', 'created_at']);

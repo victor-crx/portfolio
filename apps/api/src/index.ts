@@ -5,7 +5,16 @@ type Bindings = {
   ADMIN_TOKEN?: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type AdminRole = 'admin' | 'reviewer';
+
+type AdminIdentity = {
+  email: string;
+  role: AdminRole;
+  userId: number | null;
+  isLocalTokenAuth: boolean;
+};
+
+const app = new Hono<{ Bindings: Bindings; Variables: { adminIdentity: AdminIdentity } }>();
 
 const asInt = (value: string | null | undefined, fallback: number) => {
   const parsed = Number.parseInt(value ?? '', 10);
@@ -37,8 +46,56 @@ const authHeaderToken = (headerValue: string | null) => {
   return headerValue.slice('Bearer '.length).trim();
 };
 
+const decodeBase64Url = (value: string) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = normalized.length % 4;
+  const padded = pad ? normalized + '='.repeat(4 - pad) : normalized;
+  return atob(padded);
+};
+
+const emailFromAccessJwt = (jwt: string | null) => {
+  if (!jwt) return '';
+  const segments = jwt.split('.');
+  if (segments.length < 2) return '';
+  try {
+    const payload = JSON.parse(decodeBase64Url(segments[1])) as { email?: string };
+    return typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : '';
+  } catch {
+    return '';
+  }
+};
+
+const isLocalDevHost = (host: string) => {
+  const normalized = host.toLowerCase();
+  return normalized.includes('localhost') || normalized.startsWith('127.0.0.1') || normalized.startsWith('[::1]');
+};
+
+const getAccessEmail = (c: { req: { header: (name: string) => string | undefined } }) => {
+  const jwtEmail = emailFromAccessJwt(c.req.header('CF-Access-Jwt-Assertion') ?? null);
+  if (jwtEmail) return jwtEmail;
+  const headerEmail = c.req.header('Cf-Access-Authenticated-User-Email') ?? c.req.header('cf-access-authenticated-user-email');
+  return headerEmail?.trim().toLowerCase() ?? '';
+};
+
+const canMutateEntity = (identity: AdminIdentity, entityType: string, nextStatus?: string, existingStatus?: string) => {
+  if (identity.role === 'admin') return true;
+  if (entityType === 'site_block') return false;
+  if (nextStatus && nextStatus !== 'draft') return false;
+  if (existingStatus && existingStatus !== 'draft') return false;
+  return true;
+};
+
+const getExistingStatus = async (db: D1Database, table: string, id: string) => {
+  const row = await db
+    .prepare(`SELECT status FROM ${table} WHERE id = ? LIMIT 1`)
+    .bind(id)
+    .first<{ status: string }>();
+  return row?.status ?? null;
+};
+
 const audit = async (
   db: D1Database,
+  identity: AdminIdentity,
   action: string,
   entityType: string,
   entityId: string | number | null,
@@ -46,10 +103,17 @@ const audit = async (
 ) => {
   await db
     .prepare(
-      `INSERT INTO audit_log (action, entity_type, entity_id, metadata_json, created_at)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO audit_log (actor_user_id, action, entity_type, entity_id, metadata_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .bind(action, entityType, entityId ? String(entityId) : null, JSON.stringify(metadata), nowIso())
+    .bind(
+      identity.userId,
+      action,
+      entityType,
+      entityId ? String(entityId) : null,
+      JSON.stringify({ ...metadata, actorEmail: identity.email }),
+      nowIso()
+    )
     .run();
 };
 
@@ -203,11 +267,41 @@ app.get('/api/site-blocks', async (c) => {
 });
 
 app.use('/api/admin/*', async (c, next) => {
-  const expected = c.env.ADMIN_TOKEN;
-  const supplied = authHeaderToken(c.req.header('Authorization') ?? null);
-  if (!expected || supplied !== expected) {
-    return c.json({ error: 'Unauthorized' }, 401);
+  const host = new URL(c.req.url).host;
+  const accessEmail = getAccessEmail(c);
+  const localToken = authHeaderToken(c.req.header('Authorization') ?? null);
+  const usingLocalToken = isLocalDevHost(host) && !!c.env.ADMIN_TOKEN && localToken === c.env.ADMIN_TOKEN;
+
+  if (!accessEmail && !usingLocalToken) {
+    return c.json({ error: 'Unauthorized: Cloudflare Access identity required' }, 401);
   }
+
+  const resolvedEmail = accessEmail || 'local-admin@localhost';
+  const userRecord = await c.env.DB
+    .prepare('SELECT id, role FROM users WHERE email = ? AND is_active = 1 LIMIT 1')
+    .bind(resolvedEmail)
+    .first<{ id: number; role: AdminRole }>();
+
+  let identity: AdminIdentity;
+  if (usingLocalToken && !accessEmail) {
+    identity = {
+      email: resolvedEmail,
+      role: 'admin',
+      userId: null,
+      isLocalTokenAuth: true
+    };
+  } else if (userRecord?.role === 'admin' || userRecord?.role === 'reviewer') {
+    identity = {
+      email: resolvedEmail,
+      role: userRecord.role,
+      userId: userRecord.id,
+      isLocalTokenAuth: false
+    };
+  } else {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  c.set('adminIdentity', identity);
   await next();
 });
 
@@ -240,9 +334,12 @@ app.get('/api/admin/projects', async (c) => {
 });
 
 app.post('/api/admin/projects', async (c) => {
+  const identity = c.get('adminIdentity');
   const body = await c.req.json<Record<string, unknown>>();
+  const requestedStatus = getStatus(body.status);
+  if (!canMutateEntity(identity, 'project', requestedStatus)) return c.json({ error: 'Forbidden' }, 403);
   const id = String(body.id || crypto.randomUUID());
-  const status = getStatus(body.status);
+  const status = requestedStatus;
   const publishedAt = status === 'published' ? nowIso() : null;
 
   await c.env.DB
@@ -273,14 +370,18 @@ app.post('/api/admin/projects', async (c) => {
     )
     .run();
 
-  await audit(c.env.DB, 'create', 'project', id, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'create', 'project', id, { status });
   return c.json({ ok: true, id });
 });
 
 app.put('/api/admin/projects/:id', async (c) => {
+  const identity = c.get('adminIdentity');
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const existingStatus = await getExistingStatus(c.env.DB, 'projects', id);
+  if (!existingStatus) return c.json({ error: 'Not found' }, 404);
+  const status = getStatus(body.status, existingStatus === 'published' ? 'published' : 'draft');
+  if (!canMutateEntity(identity, 'project', status, existingStatus)) return c.json({ error: 'Forbidden' }, 403);
   const maybePublishedAt = status === 'published' ? nowIso() : null;
 
   await c.env.DB
@@ -311,7 +412,7 @@ app.put('/api/admin/projects/:id', async (c) => {
     )
     .run();
 
-  await audit(c.env.DB, 'update', 'project', id, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'update', 'project', id, { status });
   return c.json({ ok: true });
 });
 
@@ -321,8 +422,11 @@ app.get('/api/admin/services', async (c) => {
 });
 
 app.post('/api/admin/services', async (c) => {
+  const identity = c.get('adminIdentity');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const requestedStatus = getStatus(body.status);
+  if (!canMutateEntity(identity, 'service', requestedStatus)) return c.json({ error: 'Forbidden' }, 403);
+  const status = requestedStatus;
   const publishedAt = status === 'published' ? nowIso() : null;
   const result = await c.env.DB
     .prepare(
@@ -343,14 +447,18 @@ app.post('/api/admin/services', async (c) => {
       nowIso()
     )
     .run();
-  await audit(c.env.DB, 'create', 'service', result.meta.last_row_id ?? null, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'create', 'service', result.meta.last_row_id ?? null, { status });
   return c.json({ ok: true, id: result.meta.last_row_id ?? null });
 });
 
 app.put('/api/admin/services/:id', async (c) => {
+  const identity = c.get('adminIdentity');
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const existingStatus = await getExistingStatus(c.env.DB, 'services', id);
+  if (!existingStatus) return c.json({ error: 'Not found' }, 404);
+  const status = getStatus(body.status, existingStatus === 'published' ? 'published' : 'draft');
+  if (!canMutateEntity(identity, 'service', status, existingStatus)) return c.json({ error: 'Forbidden' }, 403);
   const maybePublishedAt = status === 'published' ? nowIso() : null;
 
   await c.env.DB
@@ -373,7 +481,7 @@ app.put('/api/admin/services/:id', async (c) => {
       id
     )
     .run();
-  await audit(c.env.DB, 'update', 'service', id, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'update', 'service', id, { status });
   return c.json({ ok: true });
 });
 
@@ -383,8 +491,11 @@ app.get('/api/admin/certifications', async (c) => {
 });
 
 app.post('/api/admin/certifications', async (c) => {
+  const identity = c.get('adminIdentity');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const requestedStatus = getStatus(body.status);
+  if (!canMutateEntity(identity, 'certification', requestedStatus)) return c.json({ error: 'Forbidden' }, 403);
+  const status = requestedStatus;
   const publishedAt = status === 'published' ? nowIso() : null;
   const result = await c.env.DB
     .prepare(
@@ -407,14 +518,18 @@ app.post('/api/admin/certifications', async (c) => {
       nowIso()
     )
     .run();
-  await audit(c.env.DB, 'create', 'certification', result.meta.last_row_id ?? null, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'create', 'certification', result.meta.last_row_id ?? null, { status });
   return c.json({ ok: true, id: result.meta.last_row_id ?? null });
 });
 
 app.put('/api/admin/certifications/:id', async (c) => {
+  const identity = c.get('adminIdentity');
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const existingStatus = await getExistingStatus(c.env.DB, 'certifications', id);
+  if (!existingStatus) return c.json({ error: 'Not found' }, 404);
+  const status = getStatus(body.status, existingStatus === 'published' ? 'published' : 'draft');
+  if (!canMutateEntity(identity, 'certification', status, existingStatus)) return c.json({ error: 'Forbidden' }, 403);
   const maybePublishedAt = status === 'published' ? nowIso() : null;
 
   await c.env.DB
@@ -438,7 +553,7 @@ app.put('/api/admin/certifications/:id', async (c) => {
       id
     )
     .run();
-  await audit(c.env.DB, 'update', 'certification', id, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'update', 'certification', id, { status });
   return c.json({ ok: true });
 });
 
@@ -448,8 +563,11 @@ app.get('/api/admin/labs', async (c) => {
 });
 
 app.post('/api/admin/labs', async (c) => {
+  const identity = c.get('adminIdentity');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const requestedStatus = getStatus(body.status);
+  if (!canMutateEntity(identity, 'lab', requestedStatus)) return c.json({ error: 'Forbidden' }, 403);
+  const status = requestedStatus;
   const publishedAt = status === 'published' ? nowIso() : null;
   const result = await c.env.DB
     .prepare(
@@ -471,14 +589,18 @@ app.post('/api/admin/labs', async (c) => {
       nowIso()
     )
     .run();
-  await audit(c.env.DB, 'create', 'lab', result.meta.last_row_id ?? null, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'create', 'lab', result.meta.last_row_id ?? null, { status });
   return c.json({ ok: true, id: result.meta.last_row_id ?? null });
 });
 
 app.put('/api/admin/labs/:id', async (c) => {
+  const identity = c.get('adminIdentity');
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const existingStatus = await getExistingStatus(c.env.DB, 'labs', id);
+  if (!existingStatus) return c.json({ error: 'Not found' }, 404);
+  const status = getStatus(body.status, existingStatus === 'published' ? 'published' : 'draft');
+  if (!canMutateEntity(identity, 'lab', status, existingStatus)) return c.json({ error: 'Forbidden' }, 403);
   const maybePublishedAt = status === 'published' ? nowIso() : null;
 
   await c.env.DB
@@ -501,7 +623,7 @@ app.put('/api/admin/labs/:id', async (c) => {
       id
     )
     .run();
-  await audit(c.env.DB, 'update', 'lab', id, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'update', 'lab', id, { status });
   return c.json({ ok: true });
 });
 
@@ -513,8 +635,11 @@ app.get('/api/admin/site-blocks', async (c) => {
 });
 
 app.post('/api/admin/site-blocks', async (c) => {
+  const identity = c.get('adminIdentity');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const requestedStatus = getStatus(body.status);
+  if (!canMutateEntity(identity, 'site_block', requestedStatus)) return c.json({ error: 'Forbidden' }, 403);
+  const status = requestedStatus;
   const publishedAt = status === 'published' ? nowIso() : null;
 
   const result = await c.env.DB
@@ -536,14 +661,18 @@ app.post('/api/admin/site-blocks', async (c) => {
       nowIso()
     )
     .run();
-  await audit(c.env.DB, 'create', 'site_block', result.meta.last_row_id ?? null, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'create', 'site_block', result.meta.last_row_id ?? null, { status });
   return c.json({ ok: true, id: result.meta.last_row_id ?? null });
 });
 
 app.put('/api/admin/site-blocks/:id', async (c) => {
+  const identity = c.get('adminIdentity');
   const id = c.req.param('id');
   const body = await c.req.json<Record<string, unknown>>();
-  const status = getStatus(body.status);
+  const existingStatus = await getExistingStatus(c.env.DB, 'site_blocks', id);
+  if (!existingStatus) return c.json({ error: 'Not found' }, 404);
+  const status = getStatus(body.status, existingStatus === 'published' ? 'published' : 'draft');
+  if (!canMutateEntity(identity, 'site_block', status, existingStatus)) return c.json({ error: 'Forbidden' }, 403);
   const maybePublishedAt = status === 'published' ? nowIso() : null;
 
   await c.env.DB
@@ -566,7 +695,7 @@ app.put('/api/admin/site-blocks/:id', async (c) => {
       id
     )
     .run();
-  await audit(c.env.DB, 'update', 'site_block', id, { status });
+  await audit(c.env.DB, c.get('adminIdentity'), 'update', 'site_block', id, { status });
   return c.json({ ok: true });
 });
 
