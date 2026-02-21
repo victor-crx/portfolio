@@ -5,6 +5,7 @@
     <h2>Admin</h2>
     <a href='/admin/'>Dashboard</a>
     <a href='/admin/projects/'>Projects</a>
+    <a href='/admin/media/'>Media</a>
     <a href='/admin/services/'>Services</a>
     <a href='/admin/certifications/'>Certifications</a>
     <a href='/admin/labs/'>Labs</a>
@@ -17,6 +18,15 @@
     <h1>Projects</h1><form id='admin-form' class='admin-form'>
 <input name='id' placeholder='id (blank=create)'><input name='slug' placeholder='slug'><input name='title' placeholder='title' required><input name='summary' placeholder='summary'><input name='type' placeholder='type'><input name='project_date' placeholder='project_date'><input name='status' placeholder='draft/published'><input name='featured_order' placeholder='featured_order'><textarea name='collections' placeholder='["systems"]'></textarea><textarea name='problem' placeholder='problem'></textarea><textarea name='constraints_text' placeholder='constraints'></textarea><textarea name='actions' placeholder='["action"]'></textarea><textarea name='results' placeholder='["result"]'></textarea><textarea name='next_steps' placeholder='["next"]'></textarea><button type='submit'>Save</button></form>
 <table class='admin-table'><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
+
+<h2>Attach Media to Project</h2>
+<form id='project-media-form' class='admin-form'>
+  <input name='project_id' placeholder='project id' required>
+  <input name='media_asset_id' placeholder='media asset id' required>
+  <input name='sort_order' placeholder='sort order (0 default)'>
+  <button type='submit'>Attach</button>
+</form>
+<table class='admin-table'><thead><tr><th>Project</th><th>Media ID</th><th>Key</th><th>Sort</th><th></th></tr></thead><tbody id='project-media-table-body'></tbody></table>
   </main>
 </div>
 <script src='/admin.js' defer></script>

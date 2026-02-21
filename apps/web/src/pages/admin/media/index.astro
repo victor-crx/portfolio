@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Admin Media</title><link rel='stylesheet' href='/admin.css'></head>
+<body class='admin' data-admin-page='media'>
+<div class='admin-wrap admin-grid'>
+  <aside class='admin-panel admin-nav' data-admin-nav>
+    <h2>Admin</h2>
+    <a href='/admin/'>Dashboard</a>
+    <a href='/admin/projects/'>Projects</a>
+    <a href='/admin/media/'>Media</a>
+    <a href='/admin/services/'>Services</a>
+    <a href='/admin/certifications/'>Certifications</a>
+    <a href='/admin/labs/'>Labs</a>
+    <a href='/admin/site/'>Site Blocks</a>
+    <a href='/admin/inquiries/'>Inquiries</a>
+    <a href='/admin/audit/'>Audit</a>
+    <button data-admin-logout>Logout</button>
+  </aside>
+  <main class='admin-panel'>
+    <h1>Media</h1>
+    <form id='admin-media-upload-form' class='admin-form' enctype='multipart/form-data'>
+      <input type='file' name='file' accept='image/jpeg,image/png,image/webp,application/pdf' required>
+      <input name='alt_text' placeholder='alt text'>
+      <button type='submit'>Upload</button>
+      <p id='admin-media-upload-status'></p>
+    </form>
+
+    <form id='admin-media-search-form' class='admin-form'>
+      <input name='q' placeholder='search key/url/alt text'>
+      <button type='submit'>Search</button>
+    </form>
+
+    <table class='admin-table'><thead><tr><th>ID</th><th>Key</th><th>URL</th><th>MIME</th><th>Visibility</th><th>Alt text</th><th></th></tr></thead><tbody id='admin-media-table-body'></tbody></table>
+  </main>
+</div>
+<script src='/admin.js' defer></script>
+</body></html>

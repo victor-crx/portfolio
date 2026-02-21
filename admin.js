@@ -184,6 +184,78 @@
       renderRows(document.querySelector('#admin-table-body'), payload.data || [], ['id', 'inquiry_type', 'email', 'status', 'created_at']);
     });
   }
+
+  if (page === 'media') {
+    const tableBody = document.querySelector('#admin-media-table-body');
+    const uploadForm = document.querySelector('#admin-media-upload-form');
+    const searchForm = document.querySelector('#admin-media-search-form');
+    const uploadStatus = document.querySelector('#admin-media-upload-status');
+
+    const loadMedia = async (q = '') => {
+      const path = q ? `/api/admin/media?q=${encodeURIComponent(q)}` : '/api/admin/media';
+      const payload = await api(path, { headers: {} });
+      const data = payload.data || [];
+      tableBody.innerHTML = data.map((item) => `<tr><td>${item.id ?? ''}</td><td><code>${item.key ?? ''}</code></td><td><input data-url readonly value="${item.public_url ?? ''}"></td><td>${item.mime_type ?? ''}</td><td>${item.visibility ?? ''}</td><td><input data-alt-id="${item.id}" value="${item.alt_text ?? ''}"></td><td><button data-copy-url="${item.public_url ?? ''}">Copy URL</button><button data-copy-key="${item.key ?? ''}">Copy Key</button><button data-save-id="${item.id}">Save</button></td></tr>`).join('');
+
+      tableBody.querySelectorAll('[data-copy-url]').forEach((btn) => btn.addEventListener('click', async () => navigator.clipboard.writeText(btn.getAttribute('data-copy-url') || '')));
+      tableBody.querySelectorAll('[data-copy-key]').forEach((btn) => btn.addEventListener('click', async () => navigator.clipboard.writeText(btn.getAttribute('data-copy-key') || '')));
+      tableBody.querySelectorAll('[data-save-id]').forEach((btn) => btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-save-id');
+        const alt = tableBody.querySelector(`[data-alt-id="${id}"]`)?.value || '';
+        await api(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ alt_text: alt }) });
+      }));
+    };
+
+    uploadForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(uploadForm);
+      const headers = {};
+      if (isLocalHost && token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch('/api/admin/media', { method: 'POST', body: formData, headers });
+      if (!response.ok) {
+        uploadStatus.textContent = `Upload failed (${response.status})`;
+        return;
+      }
+      uploadStatus.textContent = 'Uploaded';
+      uploadForm.reset();
+      await loadMedia();
+    });
+
+    searchForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const q = new FormData(searchForm).get('q')?.toString() || '';
+      await loadMedia(q);
+    });
+
+    loadMedia();
+  }
+
+  if (page === 'projects') {
+    const attachForm = document.querySelector('#project-media-form');
+    const mediaTbody = document.querySelector('#project-media-table-body');
+
+    const loadProjectMedia = async (projectId) => {
+      if (!projectId) return;
+      const payload = await api(`/api/admin/projects/${encodeURIComponent(projectId)}/media`);
+      const items = payload.data || [];
+      mediaTbody.innerHTML = items.map((item) => `<tr><td>${item.project_id}</td><td>${item.media_asset_id}</td><td>${item.key ?? ''}</td><td>${item.sort_order ?? 0}</td><td><button data-detach-project='${item.project_id}' data-detach-media='${item.media_asset_id}'>Detach</button></td></tr>`).join('');
+      mediaTbody.querySelectorAll('[data-detach-project]').forEach((btn) => btn.addEventListener('click', async () => {
+        await api(`/api/admin/projects/${encodeURIComponent(btn.getAttribute('data-detach-project'))}/media/${encodeURIComponent(btn.getAttribute('data-detach-media'))}`, { method: 'DELETE' });
+        await loadProjectMedia(btn.getAttribute('data-detach-project'));
+      }));
+    };
+
+    attachForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(attachForm).entries());
+      await api(`/api/admin/projects/${encodeURIComponent(String(data.project_id || ''))}/media`, { method: 'POST', body: JSON.stringify(data) });
+      await loadProjectMedia(String(data.project_id || ''));
+    });
+
+    const projectIdInput = attachForm?.querySelector('[name="project_id"]');
+    projectIdInput?.addEventListener('change', () => loadProjectMedia(projectIdInput.value));
+  }
+
   if (page === 'audit') {
     api('/api/admin/audit').then((payload) => {
       renderRows(document.querySelector('#admin-table-body'), payload.data || [], ['id', 'action', 'entity_type', 'entity_id', 'created_at']);
