@@ -12,7 +12,8 @@
 
 ## Turnstile keys
 1. Create a Turnstile widget in Cloudflare dashboard.
-2. Configure site key on the contact page markup (`data-sitekey`).
+2. Set Cloudflare Pages **Production** environment variable:
+   - `TURNSTILE_SITE_KEY`
 3. Set Worker secret env var:
    - `TURNSTILE_SECRET_KEY`
 

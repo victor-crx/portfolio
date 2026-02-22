@@ -1,3 +1,6 @@
+---
+const siteKey = import.meta.env.TURNSTILE_SITE_KEY ?? "";
+---
 <!doctype html><html lang="en"><head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -19,9 +22,54 @@
     <input name="email" type="email" placeholder="Your email" required>
     <input name="subject" placeholder="Subject" required>
     <textarea name="message" placeholder="Your message" required></textarea>
-    <div class="cf-turnstile" data-sitekey="CHANGE_ME_TURNSTILE_SITE_KEY"></div>
+    <div class="cf-turnstile" data-sitekey={siteKey}></div>
     <button type="submit">Send inquiry</button>
     <p data-contact-status aria-live="polite"></p>
   </form>
   </div></main>
-  <footer class="footer"><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div></div></footer><script src="/app.js" defer></script></body></html>
+  <footer class="footer"><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div></div></footer><script src="/app.js" defer></script>
+  <script is:inline define:vars={{ siteKey }}>
+    if (!siteKey) {
+      console.warn('TURNSTILE_SITE_KEY is empty; contact form submissions will fail Turnstile verification.');
+    }
+
+    const form = document.querySelector('[data-contact-form]');
+    const status = document.querySelector('[data-contact-status]');
+
+    if (form && status) {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        status.textContent = '';
+
+        const formData = new FormData(form);
+        const payload = {
+          inquiry_type: String(formData.get('inquiry_type') || 'general'),
+          name: String(formData.get('name') || '').trim(),
+          email: String(formData.get('email') || '').trim(),
+          subject: String(formData.get('subject') || '').trim(),
+          message: String(formData.get('message') || '').trim(),
+          turnstileToken: String(formData.get('cf-turnstile-response') || '').trim()
+        };
+
+        try {
+          const response = await fetch('/api/inquiries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const result = await response.json().catch(() => ({}));
+            status.textContent = String(result.error || 'Could not send inquiry. Please try again.');
+            return;
+          }
+
+          form.reset();
+          status.textContent = 'Inquiry sent. Thank you.';
+        } catch {
+          status.textContent = 'Network error. Please try again.';
+        }
+      });
+    }
+  </script>
+</body></html>
