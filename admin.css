@@ -14,3 +14,12 @@ body.admin {
 .admin-table { width:100%; border-collapse:collapse; }
 .admin-table td,.admin-table th { border-bottom:1px solid #2b2b35; padding:8px; text-align:left; vertical-align:top; }
 .admin-login { max-width:420px; margin:10vh auto; }
+
+.admin-media-url-input {
+  width: 100%;
+  min-width: 240px;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
