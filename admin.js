@@ -70,6 +70,67 @@
     confirmBtn?.focus();
   });
 
+
+  const confirmTypeModal = ({ title, lines = [], token = 'DELETE', confirmText = 'Delete' }) => new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'admin-modal-overlay';
+    overlay.innerHTML = `
+      <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-type-modal-title">
+        <h3 id="admin-type-modal-title">${escapeHtml(title)}</h3>
+        ${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}
+        <label>Type <code>${escapeHtml(token)}</code> to confirm</label>
+        <input type="text" data-modal-typed-input autocomplete="off" spellcheck="false" />
+        <div class="admin-modal-actions">
+          <button type="button" data-modal-cancel>Cancel</button>
+          <button type="button" data-modal-confirm disabled>${escapeHtml(confirmText)}</button>
+        </div>
+      </div>`;
+    const active = document.activeElement;
+    document.body.appendChild(overlay);
+    const cancelBtn = overlay.querySelector('[data-modal-cancel]');
+    const confirmBtn = overlay.querySelector('[data-modal-confirm]');
+    const typedInput = overlay.querySelector('[data-modal-typed-input]');
+    const focusables = () => overlay.querySelectorAll('button,[href],input,textarea,select,[tabindex]:not([tabindex="-1"])');
+    const cleanup = (result) => {
+      document.removeEventListener('keydown', onKeyDown);
+      overlay.remove();
+      if (active && active.focus) active.focus();
+      resolve(result);
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') cleanup(false);
+      if (event.key === 'Tab') {
+        const f = Array.from(focusables());
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    const sync = () => {
+      if (!confirmBtn || !typedInput) return;
+      confirmBtn.disabled = typedInput.value !== token;
+    };
+    document.addEventListener('keydown', onKeyDown);
+    cancelBtn?.addEventListener('click', () => cleanup(false));
+    confirmBtn?.addEventListener('click', () => {
+      if (confirmBtn.disabled) return;
+      cleanup(true);
+    });
+    typedInput?.addEventListener('input', sync);
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) cleanup(false);
+    });
+    sync();
+    typedInput?.focus();
+  });
+
   const setLoading = (el, isLoading) => {
     if (!el) return;
     if (isLoading) {
@@ -394,17 +455,18 @@
     const buildPublicUrl = (item) => String(item?.public_url || '').trim() || `${mediaPublicBase.replace(/\/+$/, '')}/${String(item?.key || '').replace(/^\/+/, '')}`;
 
     const loadMedia = async (q = '') => {
-      renderTableState(tableBody, 'loading', 7);
+      renderTableState(tableBody, 'loading', 8);
       const path = q ? `/api/admin/media?q=${encodeURIComponent(q)}` : '/api/admin/media';
       const payload = await fetchJSON(path, { headers: {} });
       const data = payload.data || [];
       if (!data.length) {
-        renderTableState(tableBody, 'empty', 7);
+        renderTableState(tableBody, 'empty', 8);
         return;
       }
       tableBody.innerHTML = data.map((item) => {
         const url = buildPublicUrl(item);
-        return `<tr><td>${item.id ?? ''}</td><td><code>${item.key ?? ''}</code></td><td><input class='admin-media-url-input' data-url readonly value="${url}" title="${url}"></td><td>${item.mime_type ?? ''}</td><td>${item.visibility ?? ''}</td><td><input data-alt-id="${item.id}" value="${item.alt_text ?? ''}"></td><td><button data-copy-url="${url}">Copy URL</button><button data-copy-key="${item.key ?? ''}">Copy Key</button><button data-save-id="${item.id}">Save</button></td></tr>`;
+        const attachedCount = Number(item.attached_count || 0);
+        return `<tr data-media-row-id="${item.id ?? ''}"><td>${item.id ?? ''}</td><td><code>${item.key ?? ''}</code></td><td><input class='admin-media-url-input' data-url readonly value="${url}" title="${url}"></td><td>${item.mime_type ?? ''}</td><td>${item.visibility ?? ''}</td><td>${attachedCount}</td><td><input data-alt-id="${item.id}" value="${item.alt_text ?? ''}"></td><td><button data-copy-url="${url}">Copy URL</button><button data-copy-key="${item.key ?? ''}">Copy Key</button><button data-save-id="${item.id}">Save</button><button data-delete-id="${item.id}" data-delete-key="${item.key ?? ''}" data-delete-url="${url}" data-delete-attached="${attachedCount}" data-delete-visibility="${item.visibility ?? ''}">Delete</button></td></tr>`;
       }).join('');
       tableBody.querySelectorAll('[data-copy-url]').forEach((btn) => btn.addEventListener('click', async () => navigator.clipboard.writeText(btn.getAttribute('data-copy-url') || '')));
       tableBody.querySelectorAll('[data-copy-key]').forEach((btn) => btn.addEventListener('click', async () => navigator.clipboard.writeText(btn.getAttribute('data-copy-key') || '')));
@@ -413,6 +475,29 @@
         const alt = tableBody.querySelector(`[data-alt-id="${id}"]`)?.value || '';
         await fetchJSON(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ alt_text: alt }) });
         toast('Media updated', 'success');
+      }));
+      tableBody.querySelectorAll('[data-delete-id]').forEach((btn) => btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-delete-id') || '';
+        const key = btn.getAttribute('data-delete-key') || '';
+        const url = btn.getAttribute('data-delete-url') || '';
+        const attachedCount = Number(btn.getAttribute('data-delete-attached') || 0);
+        const visibility = btn.getAttribute('data-delete-visibility') || '';
+        const lines = [
+          `URL: ${url}`,
+          `Key: ${key}`,
+          `Attached to ${attachedCount} project(s)`
+        ];
+        if (visibility === 'public') lines.push('WARNING: This media is public and may be live on the site or externally linked.');
+        const confirmed = await confirmTypeModal({ title: 'Delete media asset?', lines, token: 'DELETE', confirmText: 'Delete' });
+        if (!confirmed) return;
+        try {
+          await fetchJSON(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ confirm: 'DELETE' }) });
+          tableBody.querySelector(`[data-media-row-id="${id}"]`)?.remove();
+          if (!tableBody.querySelector('tr')) renderTableState(tableBody, 'empty', 8);
+          toast('Deleted', 'success');
+        } catch (error) {
+          toast(error.message || 'Delete failed', 'error');
+        }
       }));
     };
 
