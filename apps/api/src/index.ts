@@ -51,6 +51,12 @@ const sanitizeText = (value: unknown, maxLen = 4000) =>
     .trim()
     .slice(0, maxLen);
 
+const toIsoOrEmpty = (value: string | null | undefined) => {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+};
+
 const slugifyFilename = (value: string) =>
   value
     .toLowerCase()
@@ -431,6 +437,11 @@ app.get('/api/admin/dashboard', async (c) => {
       inquiries: inquiries?.total ?? 0
     }
   });
+});
+
+app.get('/api/admin/me', async (c) => {
+  const identity = c.get('adminIdentity');
+  return c.json({ email: identity.email, role: identity.role });
 });
 
 app.get('/api/admin/projects', async (c) => {
@@ -930,8 +941,153 @@ app.delete('/api/admin/projects/:id/media/:mediaAssetId', async (c) => {
 });
 
 app.get('/api/admin/inquiries', async (c) => {
-  const rows = await c.env.DB.prepare('SELECT * FROM inquiries ORDER BY created_at DESC').all();
+  const status = sanitizeText(c.req.query('status') ?? '', 20);
+  const type = sanitizeText(c.req.query('type') ?? '', 40);
+  const q = sanitizeText(c.req.query('q') ?? '', 200);
+  const dateFrom = toIsoOrEmpty(c.req.query('dateFrom'));
+  const dateTo = toIsoOrEmpty(c.req.query('dateTo'));
+  const page = asInt(c.req.query('page'), 1);
+  const pageSize = Math.min(asInt(c.req.query('pageSize'), 25), 100);
+  const offset = (page - 1) * pageSize;
+
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (status && ['new', 'read', 'closed'].includes(status)) {
+    where.push('status = ?');
+    params.push(status);
+  }
+  if (type) {
+    where.push('inquiry_type = ?');
+    params.push(type);
+  }
+  if (q) {
+    where.push('(name LIKE ? OR email LIKE ? OR subject LIKE ? OR message LIKE ?)');
+    params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+  }
+  if (dateFrom) {
+    where.push('created_at >= ?');
+    params.push(dateFrom);
+  }
+  if (dateTo) {
+    where.push('created_at <= ?');
+    params.push(dateTo);
+  }
+
+  const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const totalResult = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS total FROM inquiries ${whereClause}`)
+    .bind(...params)
+    .first<{ total: number }>();
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, inquiry_type, name, email, subject, status, created_at, assigned_to_email, updated_at
+       FROM inquiries
+       ${whereClause}
+       ORDER BY created_at DESC, id DESC
+       LIMIT ? OFFSET ?`
+    )
+    .bind(...params, pageSize, offset)
+    .all();
+
+  return c.json({
+    data: rows.results ?? [],
+    pagination: {
+      total: totalResult?.total ?? 0,
+      page,
+      pageSize
+    }
+  });
+});
+
+app.get('/api/admin/inquiries/:id', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB
+    .prepare('SELECT * FROM inquiries WHERE id = ? LIMIT 1')
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json({ data: { ...row, metadata_json: row.payload_json ?? '{}' } });
+});
+
+app.patch('/api/admin/inquiries/:id', async (c) => {
+  const id = c.req.param('id');
+  const identity = c.get('adminIdentity');
+  const body = await c.req.json<Record<string, unknown>>();
+  const nextStatus = sanitizeText(body.status, 20);
+  const assignedToEmailRaw = sanitizeText(body.assigned_to_email, 200).toLowerCase();
+  const assignedToEmail = assignedToEmailRaw || null;
+
+  const existing = await c.env.DB
+    .prepare('SELECT id, status, assigned_to_email FROM inquiries WHERE id = ? LIMIT 1')
+    .bind(id)
+    .first<{ id: number; status: string; assigned_to_email?: string | null }>();
+  if (!existing) return c.json({ error: 'Not found' }, 404);
+
+  const validTransitions: Record<string, string[]> = {
+    new: ['read', 'closed'],
+    read: ['closed', 'new'],
+    closed: ['new', 'read']
+  };
+
+  let status = existing.status;
+  if (nextStatus) {
+    if (!['new', 'read', 'closed'].includes(nextStatus)) return c.json({ error: 'Invalid status' }, 400);
+    if (nextStatus !== existing.status && !(validTransitions[existing.status] || []).includes(nextStatus)) {
+      return c.json({ error: 'Invalid status transition' }, 400);
+    }
+    status = nextStatus;
+  }
+
+  await c.env.DB
+    .prepare('UPDATE inquiries SET status = ?, assigned_to_email = ?, updated_at = ? WHERE id = ?')
+    .bind(status, assignedToEmail ?? existing.assigned_to_email ?? null, nowIso(), id)
+    .run();
+
+  if (status !== existing.status) {
+    await audit(c.env.DB, identity, 'status_change', 'inquiry', id, { from: existing.status, to: status, inquiryId: id });
+  }
+  if ((assignedToEmail ?? existing.assigned_to_email ?? null) !== (existing.assigned_to_email ?? null)) {
+    await audit(c.env.DB, identity, 'assignment_change', 'inquiry', id, {
+      from: existing.assigned_to_email ?? null,
+      to: assignedToEmail,
+      inquiryId: id
+    });
+  }
+
+  return c.json({ ok: true });
+});
+
+app.get('/api/admin/inquiries/:id/notes', async (c) => {
+  const id = c.req.param('id');
+  const rows = await c.env.DB
+    .prepare('SELECT * FROM inquiry_notes WHERE inquiry_id = ? ORDER BY created_at ASC, id ASC')
+    .bind(id)
+    .all();
   return c.json({ data: rows.results ?? [] });
+});
+
+app.post('/api/admin/inquiries/:id/notes', async (c) => {
+  const id = c.req.param('id');
+  const identity = c.get('adminIdentity');
+  const body = await c.req.json<Record<string, unknown>>();
+  const noteText = sanitizeText(body.note_text, 4000);
+  if (!noteText) return c.json({ error: 'note_text is required' }, 400);
+
+  const exists = await c.env.DB
+    .prepare('SELECT id FROM inquiries WHERE id = ? LIMIT 1')
+    .bind(id)
+    .first<{ id: number }>();
+  if (!exists) return c.json({ error: 'Not found' }, 404);
+
+  const result = await c.env.DB
+    .prepare('INSERT INTO inquiry_notes (inquiry_id, note_text, created_at, actor_email) VALUES (?, ?, ?, ?)')
+    .bind(id, noteText, nowIso(), identity.email)
+    .run();
+
+  await audit(c.env.DB, identity, 'note_create', 'inquiry', id, { inquiryId: id, noteId: result.meta.last_row_id ?? null });
+  return c.json({ ok: true, id: result.meta.last_row_id ?? null });
 });
 
 app.get('/api/admin/audit', async (c) => {

@@ -15,8 +15,62 @@
     <button data-admin-logout>Logout</button>
   </aside>
   <main class='admin-panel'>
-    <h1>Inquiries</h1><table class='admin-table'><thead><tr><th>ID</th><th>Type</th><th>Email</th><th>Status</th><th>Created</th></tr></thead><tbody id='admin-table-body'></tbody></table>
+    <h1>Inquiries</h1>
+    <form id='inquiry-filters-form' class='admin-form admin-inline-form'>
+      <select name='status'>
+        <option value=''>All statuses</option>
+        <option value='new'>New</option>
+        <option value='read'>Read</option>
+        <option value='closed'>Closed</option>
+      </select>
+      <input name='type' placeholder='Type'>
+      <input name='dateFrom' type='date'>
+      <input name='dateTo' type='date'>
+      <input name='q' placeholder='Search name/email/subject/message'>
+      <button type='submit'>Apply</button>
+    </form>
+    <table class='admin-table'>
+      <thead><tr><th>ID</th><th>Type</th><th>Email</th><th>Subject</th><th>Status</th><th>Created</th><th>Assigned</th><th></th></tr></thead>
+      <tbody id='admin-table-body'></tbody>
+    </table>
+    <div class='admin-pagination' data-pagination></div>
   </main>
+</div>
+
+<div id='inquiry-detail-modal' class='admin-modal-overlay'>
+  <div class='admin-modal admin-modal-lg' role='dialog' aria-modal='true' aria-labelledby='inquiry-detail-title'>
+    <div class='admin-modal-head'>
+      <h3 id='inquiry-detail-title' data-field='header'>Inquiry</h3>
+      <button data-close-detail>Close</button>
+    </div>
+    <p><strong>Name:</strong> <span data-field='name'></span></p>
+    <p><strong>Email:</strong> <span data-field='email'></span></p>
+    <p><strong>Subject:</strong> <span data-field='subject'></span></p>
+    <p><strong>Created:</strong> <span data-field='created_at'></span></p>
+    <label>Message</label>
+    <pre class='admin-message' data-field='message'></pre>
+    <details>
+      <summary>Details</summary>
+      <pre class='admin-message' data-field='metadata_json'></pre>
+    </details>
+
+    <div class='admin-inline-form'>
+      <button data-next-status='read'>Mark read</button>
+      <button data-next-status='closed'>Close</button>
+      <button data-next-status='new'>Reopen</button>
+    </div>
+
+    <h4>Assignment</h4>
+    <div class='admin-inline-form'>
+      <input data-assign-email placeholder='assigned_to_email'>
+      <button data-save-assign>Save assignment</button>
+    </div>
+
+    <h4>Notes</h4>
+    <div data-notes-list></div>
+    <textarea data-note-text placeholder='Add note'></textarea>
+    <button data-save-note>Save note</button>
+  </div>
 </div>
 <script src='/admin.js' defer></script>
 </body></html>

@@ -23,3 +23,19 @@ body.admin {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.admin-user-badge { font-size: 12px; color: #bfc2d7; margin: 8px 0 12px; padding: 8px; border: 1px solid #2a2a33; border-radius: 6px; background: #0f0f14; word-break: break-word; }
+.admin-state { color: #b6b8c8; text-align: center; padding: 16px; }
+.admin-toasts { position: fixed; top: 14px; right: 14px; display: grid; gap: 8px; z-index: 1200; }
+.admin-toast { padding: 10px 12px; border-radius: 8px; border: 1px solid #3b3e55; background: #161923; color: #fff; min-width: 220px; }
+.admin-toast-success { border-color: #206744; }
+.admin-toast-error { border-color: #a73a3a; }
+.admin-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none; align-items: center; justify-content: center; z-index: 1100; padding: 20px; }
+.admin-modal-overlay.open { display: flex; }
+.admin-modal { background: #121219; border: 1px solid #2a2a33; border-radius: 10px; max-width: 560px; width: 100%; padding: 16px; }
+.admin-modal-lg { max-width: 760px; max-height: 92vh; overflow: auto; }
+.admin-modal-actions, .admin-inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.admin-modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.admin-pagination { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
+.admin-message { white-space: pre-wrap; background: #0d0d13; border: 1px solid #2a2a33; border-radius: 6px; padding: 10px; }
+.admin-note { border: 1px solid #2a2a33; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
