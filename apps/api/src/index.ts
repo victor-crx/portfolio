@@ -820,8 +820,18 @@ app.put('/api/admin/site-blocks/:id', async (c) => {
 app.get('/api/admin/media', async (c) => {
   const identity = c.get('adminIdentity');
   const q = sanitizeText(c.req.query('q') ?? '', 120);
-  const where = q ? 'WHERE key LIKE ? OR public_url LIKE ? OR alt_text LIKE ?' : '';
-  const stmt = c.env.DB.prepare(`SELECT * FROM media_assets ${where} ORDER BY updated_at DESC, created_at DESC LIMIT 200`);
+  const where = q ? 'WHERE ma.key LIKE ? OR ma.public_url LIKE ? OR ma.alt_text LIKE ?' : '';
+  const stmt = c.env.DB.prepare(
+    `SELECT
+        ma.*,
+        COUNT(pm.media_asset_id) AS attached_count
+      FROM media_assets ma
+      LEFT JOIN project_media pm ON pm.media_asset_id = ma.id
+      ${where}
+      GROUP BY ma.id
+      ORDER BY ma.updated_at DESC, ma.created_at DESC
+      LIMIT 200`
+  );
   const rows = q ? await stmt.bind(`%${q}%`, `%${q}%`, `%${q}%`).all() : await stmt.all();
   await audit(c.env.DB, identity, 'view', 'media_asset', null, { q });
   return c.json({ data: rows.results ?? [] });
@@ -886,6 +896,50 @@ app.put('/api/admin/media/:id', async (c) => {
 
   await audit(c.env.DB, identity, 'update', 'media_asset', id, { visibility });
   return c.json({ ok: true });
+});
+
+app.delete('/api/admin/media/:id', async (c) => {
+  const identity = c.get('adminIdentity');
+  if (identity.role !== 'admin') return c.json({ error: 'Forbidden' }, 403);
+
+  const id = c.req.param('id');
+  let confirm = sanitizeText(c.req.header('X-Confirm-Delete') ?? '', 20);
+  if (!confirm) {
+    try {
+      const body = await c.req.json<Record<string, unknown>>();
+      confirm = sanitizeText(body.confirm, 20);
+    } catch {
+      confirm = '';
+    }
+  }
+  if (confirm !== 'DELETE') return c.json({ error: 'Delete confirmation required' }, 400);
+
+  const media = await c.env.DB
+    .prepare('SELECT id, key FROM media_assets WHERE id = ? LIMIT 1')
+    .bind(id)
+    .first<{ id: number; key: string }>();
+  if (!media) return c.json({ error: 'Not found' }, 404);
+
+  const detachedCountRow = await c.env.DB
+    .prepare('SELECT COUNT(*) AS total FROM project_media WHERE media_asset_id = ?')
+    .bind(id)
+    .first<{ total: number }>();
+  const detachedCount = Number(detachedCountRow?.total ?? 0);
+
+  await c.env.DB.prepare('DELETE FROM project_media WHERE media_asset_id = ?').bind(id).run();
+  await c.env.DB.prepare('DELETE FROM media_assets WHERE id = ?').bind(id).run();
+  await (c.env.R2_BUCKET as unknown as { delete: (key: string) => Promise<void> }).delete(media.key);
+
+  await audit(c.env.DB, identity, 'delete', 'media_asset', id, { key: media.key, detachedCount });
+
+  return c.json({
+    ok: true,
+    deleted: {
+      media_id: String(media.id),
+      key: media.key,
+      detached_count: detachedCount
+    }
+  });
 });
 
 app.get('/api/admin/projects/:id/media', async (c) => {
