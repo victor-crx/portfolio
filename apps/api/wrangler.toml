@@ -10,5 +10,5 @@ migrations_dir = "../../packages/db/migrations"
 
 [[r2_buckets]]
 binding = "R2_BUCKET"
-bucket_name = "portfolio-media"
-preview_bucket_name = "portfolio-media"
+bucket_name = "vrstech-media"
+preview_bucket_name = "vrstech-media"
