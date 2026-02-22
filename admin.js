@@ -190,12 +190,24 @@
     const uploadForm = document.querySelector('#admin-media-upload-form');
     const searchForm = document.querySelector('#admin-media-search-form');
     const uploadStatus = document.querySelector('#admin-media-upload-status');
+    const mediaPublicBase = 'https://media.vrstech.dev/';
+
+    const buildPublicUrl = (item) => {
+      const publicUrl = String(item?.public_url || '').trim();
+      if (publicUrl) return publicUrl;
+      const key = String(item?.key || '').trim();
+      if (!key) return '';
+      return `${mediaPublicBase.replace(/\/+$/, '')}/${key.replace(/^\/+/, '')}`;
+    };
 
     const loadMedia = async (q = '') => {
       const path = q ? `/api/admin/media?q=${encodeURIComponent(q)}` : '/api/admin/media';
       const payload = await api(path, { headers: {} });
       const data = payload.data || [];
-      tableBody.innerHTML = data.map((item) => `<tr><td>${item.id ?? ''}</td><td><code>${item.key ?? ''}</code></td><td><input data-url readonly value="${item.public_url ?? ''}"></td><td>${item.mime_type ?? ''}</td><td>${item.visibility ?? ''}</td><td><input data-alt-id="${item.id}" value="${item.alt_text ?? ''}"></td><td><button data-copy-url="${item.public_url ?? ''}">Copy URL</button><button data-copy-key="${item.key ?? ''}">Copy Key</button><button data-save-id="${item.id}">Save</button></td></tr>`).join('');
+      tableBody.innerHTML = data.map((item) => {
+        const url = buildPublicUrl(item);
+        return `<tr><td>${item.id ?? ''}</td><td><code>${item.key ?? ''}</code></td><td><input class='admin-media-url-input' data-url readonly value="${url}" title="${url}"></td><td>${item.mime_type ?? ''}</td><td>${item.visibility ?? ''}</td><td><input data-alt-id="${item.id}" value="${item.alt_text ?? ''}"></td><td><button data-copy-url="${url}">Copy URL</button><button data-copy-key="${item.key ?? ''}">Copy Key</button><button data-save-id="${item.id}">Save</button></td></tr>`;
+      }).join('');
 
       tableBody.querySelectorAll('[data-copy-url]').forEach((btn) => btn.addEventListener('click', async () => navigator.clipboard.writeText(btn.getAttribute('data-copy-url') || '')));
       tableBody.querySelectorAll('[data-copy-key]').forEach((btn) => btn.addEventListener('click', async () => navigator.clipboard.writeText(btn.getAttribute('data-copy-key') || '')));
