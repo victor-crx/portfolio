@@ -450,6 +450,14 @@ app.post('/api/inquiries', async (c) => {
   const email = sanitizeText(body.email, 254).toLowerCase();
   const subject = sanitizeText(body.subject, 200);
   const message = sanitizeText(body.message, 4000);
+  const selectedService = body.selected_service as Record<string, unknown> | null;
+  const servicePayload = selectedService && selectedService.service_id
+    ? {
+        service_id: String(selectedService.service_id || '').trim(),
+        service_title: sanitizeText(selectedService.service_title, 200),
+        service_slug: sanitizeText(selectedService.service_slug, 200)
+      }
+    : null;
   const createdAt = nowIso();
 
   const result = await c.env.DB
@@ -463,7 +471,7 @@ app.post('/api/inquiries', async (c) => {
       email,
       subject,
       message,
-      JSON.stringify({ userAgent: c.req.header('user-agent') ?? '', turnstile: 'verified' }),
+      JSON.stringify({ userAgent: c.req.header('user-agent') ?? '', turnstile: 'verified', ...(servicePayload ? servicePayload : {}) }),
       ip,
       createdAt
     )
