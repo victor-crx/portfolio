@@ -1349,14 +1349,26 @@
     const heroBlock = byKey.get('home/hero');
     if (heroBlock && pageName === 'home') {
       const data = parseData(heroBlock, {});
+      const heroRoot = document.querySelector('[data-site-hero]');
       const title = document.querySelector('[data-site-hero-title]');
       const subtitle = document.querySelector('[data-site-hero-subtitle]');
-      const cta = document.querySelector('[data-site-hero-cta]');
+      const ctaPrimary = document.querySelector('[data-site-hero-cta-primary]');
+      const ctaSecondary = document.querySelector('[data-site-hero-cta-secondary]');
       if (title && data.title) title.textContent = String(data.title);
       if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
-      if (cta) {
-        cta.textContent = String(data.ctaText || 'Contact Me');
-        cta.href = String(data.ctaHref || '/contact/');
+      if (ctaPrimary) {
+        ctaPrimary.textContent = String(data.primaryCtaText || 'View my work');
+        ctaPrimary.href = String(data.primaryCtaHref || '/work/');
+      }
+      if (ctaSecondary) {
+        ctaSecondary.textContent = String(data.secondaryCtaText || 'Contact me');
+        ctaSecondary.href = String(data.secondaryCtaHref || '/contact/');
+      }
+      if (heroRoot) {
+        heroRoot.classList.remove('hero-align-left', 'hero-align-center', 'hero-align-right');
+        heroRoot.classList.add(`hero-align-${String(data.alignment || 'center')}`);
+        if (data.heroMediaUrl) heroRoot.style.setProperty('--hero-bg-image', `url('${String(data.heroMediaUrl)}')`);
+        else heroRoot.style.removeProperty('--hero-bg-image');
       }
     }
 
@@ -1368,9 +1380,9 @@
       if (pressRoot && items.length) {
         pressRoot.innerHTML = items.map((item) => {
           const quote = String(item.quote || '').trim();
-          const source = String(item.source || '').trim();
+          const source = String(item.source || item.author || '').trim();
           const label = String(item.label || '').trim();
-          const href = String(item.href || '').trim();
+          const href = String(item.href || item.link || '').trim();
           const quoteHtml = `<blockquote>“${quote || 'Testimonial pending'}”</blockquote>`;
           const sourceHtml = `<cite>— ${source || 'Source'}</cite>`;
           const labelHtml = label ? `<p class="kicker">${label}</p>` : '';
@@ -1404,8 +1416,18 @@
       const data = parseData(contactIntro, {});
       const title = document.querySelector('[data-site-contact-title]');
       const subtitle = document.querySelector('[data-site-contact-subtitle]');
+      const services = document.querySelector('[data-site-contact-services]');
       if (title && data.title) title.textContent = String(data.title);
       if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
+      if (services) {
+        const items = Array.isArray(data.services) ? data.services : [];
+        if (data.showServicesPanel && items.length) {
+          services.hidden = false;
+          services.innerHTML = `<h3>${String(data.servicesTitle || 'Services')}</h3><ul>${items.map((item) => `<li>${String(item)}</li>`).join('')}</ul>`;
+        } else {
+          services.hidden = true;
+        }
+      }
     }
   }
 

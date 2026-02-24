@@ -58,8 +58,11 @@ const SITE_BLOCK_DEFAULTS: SiteBlockSeed[] = [
     data: {
       title: 'Systems clarity, collaborative execution, elegant outcomes.',
       subtitle: 'Brochure-inspired portfolio design with a technical backbone, curated across Systems, Collaboration & Live, Delivery, and Creative lanes.',
-      ctaText: 'Contact Me',
-      ctaHref: '/contact/',
+      primaryCtaText: 'View my work',
+      primaryCtaHref: '/work/',
+      secondaryCtaText: 'Contact me',
+      secondaryCtaHref: '/contact/',
+      alignment: 'center',
       heroMediaId: null,
       heroMediaUrl: null
     }
@@ -96,7 +99,10 @@ const SITE_BLOCK_DEFAULTS: SiteBlockSeed[] = [
     body: 'Contact page heading and introductory text.',
     data: {
       title: 'Contact',
-      subtitle: 'Use the form below to send an inquiry.'
+      subtitle: 'Use the form below to send an inquiry.',
+      showServicesPanel: false,
+      servicesTitle: 'Services',
+      services: []
     }
   }
 ];
