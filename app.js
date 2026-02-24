@@ -1316,35 +1316,101 @@
 
   syncModalFromHash('init');
 
-  const contactForm = document.querySelector('[data-contact-form]');
-  if (contactForm) {
-    const statusNode = document.querySelector('[data-contact-status]');
-    contactForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const formData = new FormData(contactForm);
-      const payload = {
-        inquiry_type: formData.get('inquiry_type') || 'general',
-        name: formData.get('name') || '',
-        email: formData.get('email') || '',
-        subject: formData.get('subject') || '',
-        message: formData.get('message') || '',
-        turnstileToken: formData.get('cf-turnstile-response') || ''
-      };
+  async function hydrateSiteBlocks() {
+    const footerRoot = document.querySelector('[data-site-footer]');
+    const pageName = document.body.dataset.page || '';
+    const targets = ['global'];
+    if (pageName) targets.push(pageName);
 
-      if (statusNode) statusNode.textContent = 'Sending...';
-      try {
-        const response = await fetch('/api/inquiries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        contactForm.reset();
-        if (statusNode) statusNode.textContent = 'Message sent. Thank you.';
-      } catch (error) {
-        if (statusNode) statusNode.textContent = `Unable to submit right now. ${error instanceof Error ? error.message : ''}`;
+    const fetchPageBlocks = async (page) => {
+      const res = await fetch(`/api/site-blocks?page=${encodeURIComponent(page)}`);
+      if (!res.ok) throw new Error(`site-blocks ${page} ${res.status}`);
+      const payload = await res.json();
+      return Array.isArray(payload.data) ? payload.data : [];
+    };
+
+    const byKey = new Map();
+    try {
+      const sets = await Promise.all(targets.map((page) => fetchPageBlocks(page)));
+      sets.flat().forEach((item) => {
+        const key = `${item.page}/${item.block_key}`;
+        byKey.set(key, item);
+      });
+    } catch (error) {
+      console.warn('Site block hydration failed; using static fallback.', error);
+      return;
+    }
+
+    const parseData = (block, fallback = {}) => {
+      if (!block || typeof block.data_json !== 'string') return fallback;
+      try { return JSON.parse(block.data_json); } catch { return fallback; }
+    };
+
+    const heroBlock = byKey.get('home/hero');
+    if (heroBlock && pageName === 'home') {
+      const data = parseData(heroBlock, {});
+      const title = document.querySelector('[data-site-hero-title]');
+      const subtitle = document.querySelector('[data-site-hero-subtitle]');
+      const cta = document.querySelector('[data-site-hero-cta]');
+      if (title && data.title) title.textContent = String(data.title);
+      if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
+      if (cta) {
+        cta.textContent = String(data.ctaText || 'Contact Me');
+        cta.href = String(data.ctaHref || '/contact/');
       }
-    });
+    }
+
+    const pressBlock = byKey.get('home/press');
+    if (pressBlock && pageName === 'home') {
+      const data = parseData(pressBlock, { items: [] });
+      const items = Array.isArray(data.items) ? data.items : [];
+      const pressRoot = document.querySelector('[data-site-press-items]');
+      if (pressRoot && items.length) {
+        pressRoot.innerHTML = items.map((item) => {
+          const quote = String(item.quote || '').trim();
+          const source = String(item.source || '').trim();
+          const label = String(item.label || '').trim();
+          const href = String(item.href || '').trim();
+          const quoteHtml = `<blockquote>“${quote || 'Testimonial pending'}”</blockquote>`;
+          const sourceHtml = `<cite>— ${source || 'Source'}</cite>`;
+          const labelHtml = label ? `<p class="kicker">${label}</p>` : '';
+          const content = `${labelHtml}${quoteHtml}${sourceHtml}`;
+          return `<article class="quote-card">${href ? `<a href="${href}">${content}</a>` : content}</article>`;
+        }).join('');
+      }
+    }
+
+    const footerBlock = byKey.get('global/footer');
+    if (footerBlock && footerRoot) {
+      const data = parseData(footerBlock, {});
+      if (!footerRoot.querySelector('[data-site-footer-left]')) {
+        const container = footerRoot.querySelector('.container') || footerRoot;
+        container.innerHTML = `<div class="signature-rule footer-signature-rule" aria-hidden="true"></div><div class="footer-grid"><div class="footer-block"><h4>Victor Lane</h4><p data-site-footer-left>Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.</p></div><div class="footer-block"><h4>Links</h4><p data-site-footer-links><a href="/">Home</a><br><a href="/work/">Work</a><br><a href="/about/">About</a><br><a href="/contact/">Contact</a></p></div><div class="footer-block"><h4>Small Print</h4><p data-site-footer-small>© Victor Lane</p></div></div>`;
+      }
+      const left = document.querySelector('[data-site-footer-left]');
+      const links = document.querySelector('[data-site-footer-links]');
+      const small = document.querySelector('[data-site-footer-small]');
+      if (left && data.leftText) left.textContent = String(data.leftText);
+      if (small && data.smallPrint) small.textContent = String(data.smallPrint);
+      if (links && Array.isArray(data.links) && data.links.length) {
+        links.innerHTML = data.links
+          .map((item) => `<a href="${String(item.href || '#')}">${String(item.label || 'Link')}</a>`)
+          .join('<br>');
+      }
+    }
+
+    const contactIntro = byKey.get('contact/intro');
+    if (contactIntro && pageName === 'contact') {
+      const data = parseData(contactIntro, {});
+      const title = document.querySelector('[data-site-contact-title]');
+      const subtitle = document.querySelector('[data-site-contact-subtitle]');
+      if (title && data.title) title.textContent = String(data.title);
+      if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
+    }
   }
+
+  hydrateSiteBlocks().catch((error) => {
+    console.warn('Site block hydration error; using static fallback.', error);
+  });
 
 })();

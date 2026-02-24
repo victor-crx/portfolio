@@ -323,6 +323,113 @@
     await load();
   };
 
+  const wireSiteBlocks = async () => {
+    const listPath = '/api/admin/site-blocks';
+    const tableFields = ['id', 'page', 'block_key', 'status', 'updated_at'];
+    const tableBody = document.querySelector('#admin-table-body');
+    const form = document.querySelector('#admin-form');
+    const pageSelect = form?.querySelector('[data-site-page]');
+    const blockSelect = form?.querySelector('[data-site-block-key]');
+    const jsonInput = form?.querySelector('[data-site-json]');
+    const jsonError = form?.querySelector('[data-site-json-error]');
+    const viewLink = form?.querySelector('[data-site-view-link]');
+    const blockOptions = {
+      home: ['hero', 'press'],
+      global: ['footer'],
+      contact: ['intro']
+    };
+
+    const syncBlockOptions = () => {
+      if (!pageSelect || !blockSelect) return;
+      const pageValue = pageSelect.value || 'home';
+      const allowed = blockOptions[pageValue] || [];
+      const current = blockSelect.value;
+      blockSelect.innerHTML = allowed.map((value) => `<option value="${value}">${value}</option>`).join('');
+      blockSelect.value = allowed.includes(current) ? current : (allowed[0] || '');
+      if (viewLink) viewLink.href = pageValue === 'contact' ? '/contact/' : '/';
+    };
+
+    const validateJson = () => {
+      if (!jsonInput || !jsonError) return null;
+      try {
+        const parsed = JSON.parse(jsonInput.value || '{}');
+        jsonError.hidden = true;
+        jsonError.textContent = '';
+        jsonInput.value = JSON.stringify(parsed, null, 2);
+        return parsed;
+      } catch (error) {
+        jsonError.hidden = false;
+        jsonError.textContent = `Invalid JSON: ${error.message || 'syntax error'}`;
+        return null;
+      }
+    };
+
+    const load = async () => {
+      renderTableState(tableBody, 'loading', tableFields.length + 1);
+      const payload = await fetchJSON(listPath);
+      const data = Array.isArray(payload.data) ? payload.data : [];
+      if (!data.length) return renderTableState(tableBody, 'empty', tableFields.length + 1);
+      tableBody.innerHTML = data.map((item) => `<tr>${tableFields.map((f) => `<td>${escapeHtml(item[f] ?? '')}</td>`).join('')}<td><button type="button" data-edit='${JSON.stringify(item).replace(/'/g, '&apos;')}'>Edit</button></td></tr>`).join('');
+      tableBody.querySelectorAll('[data-edit]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const raw = btn.getAttribute('data-edit');
+          if (!raw || !form) return;
+          const item = JSON.parse(raw.replace(/&apos;/g, "'"));
+          form.querySelector('[name="id"]').value = String(item.id || '');
+          form.querySelector('[name="page"]').value = String(item.page || 'home');
+          syncBlockOptions();
+          form.querySelector('[name="block_key"]').value = String(item.block_key || '');
+          form.querySelector('[name="title"]').value = String(item.title || '');
+          form.querySelector('[name="body"]').value = String(item.body || '');
+          form.querySelector('[name="status"]').value = String(item.status || 'draft');
+          form.querySelector('[name="featured_order"]').value = item.featured_order == null ? '' : String(item.featured_order);
+          const parsed = (() => { try { return JSON.parse(item.data_json || '{}'); } catch { return {}; } })();
+          jsonInput.value = JSON.stringify(parsed, null, 2);
+          validateJson();
+        });
+      });
+    };
+
+    pageSelect?.addEventListener('change', syncBlockOptions);
+    jsonInput?.addEventListener('blur', validateJson);
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitButton = form.querySelector('button[type="submit"]') || form.querySelector('button');
+      const parsed = validateJson();
+      if (parsed === null) return;
+      setLoading(submitButton, true);
+      try {
+        const formData = new FormData(form);
+        const id = String(formData.get('id') || '').trim();
+        const payload = {
+          page: String(formData.get('page') || 'home'),
+          block_key: String(formData.get('block_key') || ''),
+          title: String(formData.get('title') || ''),
+          body: String(formData.get('body') || ''),
+          status: String(formData.get('status') || 'draft'),
+          featured_order: String(formData.get('featured_order') || ''),
+          data: parsed
+        };
+        if (id) await fetchJSON(`${listPath}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) });
+        else await fetchJSON(listPath, { method: 'POST', body: JSON.stringify(payload) });
+        toast('Saved', 'success');
+        form.reset();
+        syncBlockOptions();
+        jsonInput.value = '{}';
+        await load();
+      } catch (error) {
+        toast(error.message || 'Save failed', 'error');
+      } finally {
+        setLoading(submitButton, false);
+      }
+    });
+
+    syncBlockOptions();
+    if (jsonInput && !jsonInput.value) jsonInput.value = '{}';
+    await load();
+  };
+
   if (page === 'dashboard') {
     fetchJSON('/api/admin/dashboard').then((payload) => {
       const root = document.querySelector('[data-dashboard-counts]');
@@ -335,7 +442,7 @@
   if (page === 'services') wireCrud({ listPath: '/api/admin/services', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   if (page === 'certifications') wireCrud({ listPath: '/api/admin/certifications', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   if (page === 'labs') wireCrud({ listPath: '/api/admin/labs', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
-  if (page === 'site') wireCrud({ listPath: '/api/admin/site-blocks', tableFields: ['id', 'page', 'block_key', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
+  if (page === 'site') wireSiteBlocks();
 
   if (page === 'inquiries') {
     const tableBody = document.querySelector('#admin-table-body');
