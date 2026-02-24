@@ -47,17 +47,26 @@
       <div class="container reveal">
         <div class="section-head">
           <p class="kicker">Case Study</p>
-          <h1 class="balance no-widow">This Site: safe architecture, measurable proof</h1>
-          <p data-site-thissite-intro>This page explains how the platform is designed, protected, and operated without exposing secrets, identifiers, or implementation details that would increase attack surface.</p>
+          <h1 class="balance no-widow">This Site v2: editorial clarity, premium controls</h1>
+          <p data-site-thissite-intro>A luxury, static-first portfolio system built for speed and traceability: public pages stay frictionless while privileged admin workflows remain access-gated, role-enforced, and auditable.</p>
         </div>
-        <div class="this-site-proof-grid" data-site-thissite-proof-grid>
-          <article class="this-site-proof-card">
-            <h2>What this proves</h2>
-            <p>Production-minded architecture can remain public and understandable while still enforcing strict identity, boundary, and logging controls.</p>
+
+        <div class="this-site-stat-grid" data-site-thissite-proof-grid>
+          <article class="this-site-stat-card">
+            <p class="this-site-stat-value">Access-gated admin</p>
+            <p class="this-site-stat-label">Cloudflare Access gate before app logic</p>
           </article>
-          <article class="this-site-proof-card">
-            <h2>What stays private</h2>
-            <p>No account IDs, no bucket names, no database UUIDs, no secret names/values, and no policy bypass mechanics are documented here.</p>
+          <article class="this-site-stat-card">
+            <p class="this-site-stat-value">RBAC roles</p>
+            <p class="this-site-stat-label">Worker-enforced admin / reviewer permissions</p>
+          </article>
+          <article class="this-site-stat-card">
+            <p class="this-site-stat-value">Audit logging</p>
+            <p class="this-site-stat-label">Write-path telemetry for event reconstruction</p>
+          </article>
+          <article class="this-site-stat-card">
+            <p class="this-site-stat-value">Turnstile + rate limit</p>
+            <p class="this-site-stat-label">Public input hardening against abuse bursts</p>
           </article>
         </div>
       </div>
@@ -65,68 +74,87 @@
 
     <section class="section section-tight">
       <div class="container reveal">
-        <h2>High-level architecture</h2>
-        <p>Public content is served by Pages, while data and admin mutations pass through the Worker API into D1 and R2. Bot checks and identity checks are applied before privileged operations.</p>
-        <figure>
-          <img src="/assets/this-site-architecture.svg" alt="High-level diagram: Pages frontend to Worker API with D1 and R2 data services, protected admin path via Cloudflare Access." loading="lazy" decoding="async" />
-          <figcaption class="meta-line">Topology only: Pages → Worker → D1 + R2, with public and protected admin paths.</figcaption>
+        <div class="section-head">
+          <h2>Architecture at a glance</h2>
+          <p>Core topology is intentionally simple to keep latency low and operations predictable.</p>
+        </div>
+        <figure class="this-site-diagram-frame">
+          <img src="/assets/this-site-architecture.svg" alt="Architecture diagram: Pages frontend routes requests to Worker API, then to D1 and R2, with security controls around privileged operations." loading="lazy" decoding="async" />
+          <figcaption class="meta-line">Static Pages experience with controlled mutation path: Pages → Worker → D1 + R2.</figcaption>
         </figure>
       </div>
     </section>
 
     <section class="section section-tight">
       <div class="container reveal">
-        <h2>Identity &amp; access</h2>
-        <ul>
-          <li><strong>Cloudflare Access</strong> gates admin surfaces before application logic is reached.</li>
-          <li><strong>RBAC</strong> is enforced in the Worker for <strong>admin</strong> and <strong>reviewer</strong> roles.</li>
-          <li><strong>Audit events</strong> capture role, action class, and outcome for each write-path operation.</li>
-        </ul>
+        <div class="section-head">
+          <h2>Control layers</h2>
+          <p>Each layer is designed to reduce blast radius while keeping support workflows practical.</p>
+        </div>
+        <div class="this-site-callout-grid">
+          <article class="this-site-callout-card">
+            <h3>Identity &amp; access</h3>
+            <ul>
+              <li>Cloudflare Access gates admin routes before runtime processing.</li>
+              <li>Role checks enforce admin and reviewer action boundaries.</li>
+              <li>Sensitive paths are denied by default until claims validate.</li>
+            </ul>
+          </article>
+          <article class="this-site-callout-card">
+            <h3>Traffic &amp; abuse controls</h3>
+            <ul>
+              <li>Turnstile challenges protect public write entry points.</li>
+              <li>Edge/API rate limits absorb burst patterns early.</li>
+              <li>Input validation and sanitization run before persistence.</li>
+            </ul>
+          </article>
+          <article class="this-site-callout-card">
+            <h3>Operations &amp; recoverability</h3>
+            <ul>
+              <li>Versioned migrations keep schema changes repeatable.</li>
+              <li>CI deploys static assets and Worker services consistently.</li>
+              <li>Rollback + compensating actions support safe recovery.</li>
+            </ul>
+          </article>
+        </div>
       </div>
     </section>
 
     <section class="section section-tight">
       <div class="container reveal">
-        <h2>Security controls</h2>
-        <ul>
-          <li><strong>Turnstile</strong> on public write paths to reduce automated abuse.</li>
-          <li><strong>Rate limiting</strong> at edge/API boundaries to contain burst misuse.</li>
-          <li><strong>Validation + sanitization</strong> for inbound payloads and persisted records.</li>
-          <li><strong>Audit log</strong> for mutation traceability and post-incident reconstruction.</li>
-        </ul>
+        <div class="section-head">
+          <h2>Mapped to certs</h2>
+          <p>The same design choices map directly to formal security and admin competency areas.</p>
+        </div>
+        <div class="this-site-cert-grid">
+          <article class="this-site-cert-card">
+            <p class="kicker">SC-900</p>
+            <p>Zero Trust boundaries, telemetry-led control posture, and security principles in public-cloud workflows.</p>
+          </article>
+          <article class="this-site-cert-card">
+            <p class="kicker">MS-102</p>
+            <p>Identity governance patterns, role definition, and privileged admin guardrails.</p>
+          </article>
+          <article class="this-site-cert-card">
+            <p class="kicker">MD-102</p>
+            <p>Operational policy discipline, resilience planning, and recoverability thinking.</p>
+          </article>
+        </div>
       </div>
     </section>
 
     <section class="section section-tight">
       <div class="container reveal">
-        <h2>Operations model</h2>
-        <ul>
-          <li><strong>Migrations:</strong> schema changes are versioned and applied in controlled order.</li>
-          <li><strong>Deploy workflow:</strong> CI builds static assets and deploys Worker + Pages with repeatable steps.</li>
-          <li><strong>Rollback / compensation:</strong> immutable frontend rollback plus compensating data actions when direct reversal is unsafe.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section section-tight">
-      <div class="container reveal">
-        <h2>Cost control &amp; storage hygiene</h2>
-        <ul>
-          <li>Media delete operations remove unused assets to reduce retained storage.</li>
-          <li>Periodic hygiene checks identify orphaned files and stale references.</li>
-          <li>Operational reviews prioritize predictable egress/storage spend over uncontrolled growth.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section section-tight">
-      <div class="container reveal">
-        <h2>Mapped to certs</h2>
-        <ul>
-          <li><strong>SC-900:</strong> Zero Trust access boundaries, security posture, and telemetry-first controls.</li>
-          <li><strong>MS-102:</strong> Identity governance patterns, role design, and administrative guardrails.</li>
-          <li><strong>MD-102:</strong> Operational discipline for endpoint-aware workflows, policy enforcement, and recoverability.</li>
-        </ul>
+        <aside class="this-site-boundary-box" aria-label="Security disclosure boundary">
+          <h2>Security disclosure boundary</h2>
+          <p>This public case study documents control intent and architecture shape only.</p>
+          <ul>
+            <li>No account IDs, environment IDs, or policy IDs.</li>
+            <li>No secret names, values, or token formats.</li>
+            <li>No bucket/database identifiers or internal endpoint maps.</li>
+            <li>No bypass logic, exception playbooks, or exploit narratives.</li>
+          </ul>
+        </aside>
       </div>
     </section>
   </main>
