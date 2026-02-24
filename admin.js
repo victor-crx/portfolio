@@ -689,6 +689,7 @@
   const wireContentStudio = async () => {
     const loading = document.querySelector('[data-content-loading]');
     const roots = Array.from(document.querySelectorAll('[data-content-root]'));
+    const thisSiteRoot = document.querySelector('[data-content-root-thissite]');
     const heroForm = document.querySelector("[data-content-form='hero']");
     const pressList = document.querySelector('[data-press-list]');
     const pressSave = document.querySelector("[data-content-save='press']");
@@ -697,11 +698,31 @@
     const footerLinks = document.querySelector('[data-footer-links]');
     const footerAdd = document.querySelector('[data-footer-add-link]');
     const contactForm = document.querySelector("[data-content-form='contact']");
-    const contactServices = document.querySelector('[data-contact-services-list]');
-    const contactAdd = document.querySelector('[data-contact-add-service]');
+    const thisSiteForm = document.querySelector("[data-content-form='thissite']");
+    const thisSiteProofs = document.querySelector('[data-thissite-proofs]');
+    const thisSiteAddProof = document.querySelector('[data-thissite-add-proof]');
     const mediaSelect = document.querySelector('[data-content-media-select]');
     const listPath = '/api/admin/site-blocks';
-    const state = { hero: null, press: null, footer: null, contact: null };
+    const state = { hero: null, press: null, footer: null, contact: null, thisSite: null };
+    const errorNodes = {
+      hero: document.querySelector("[data-content-error='hero']"),
+      press: document.querySelector("[data-content-error='press']"),
+      footer: document.querySelector("[data-content-error='footer']"),
+      contact: document.querySelector("[data-content-error='contact']"),
+      thissite: document.querySelector("[data-content-error='thissite']")
+    };
+
+    const showError = (key, message = '') => {
+      const node = errorNodes[key];
+      if (!node) return;
+      if (!message) {
+        node.hidden = true;
+        node.textContent = '';
+        return;
+      }
+      node.hidden = false;
+      node.textContent = message;
+    };
 
     const getBlock = (list, pageName, key, fallbackTitle) => list.find((item) => item.page === pageName && item.block_key === key) || {
       page: pageName, block_key: key, title: fallbackTitle, body: '', status: 'published', featured_order: ''
@@ -733,7 +754,7 @@
 
     const renderLinkRows = (items = []) => {
       if (!footerLinks) return;
-      footerLinks.innerHTML = items.map((item, idx) => `<div class='admin-inline-form' data-footer-row='${idx}'><input data-footer-label placeholder='Label' value='${escapeHtml(item.label || '')}'><input data-footer-href placeholder='URL' value='${escapeHtml(item.href || '')}'><button type='button' data-footer-remove='${idx}'>Remove</button></div>`).join('') || '<p class="admin-state admin-state-left">No links yet.</p>';
+      footerLinks.innerHTML = items.map((item, idx) => `<div class='admin-row-inline' data-footer-row='${idx}'><input data-footer-label placeholder='Label' value='${escapeHtml(item.label || '')}'><input data-footer-href placeholder='URL' value='${escapeHtml(item.href || '')}'><button type='button' data-footer-up='${idx}'>↑</button><button type='button' data-footer-down='${idx}'>↓</button><button type='button' data-footer-remove='${idx}'>Remove</button></div>`).join('') || '<p class="admin-state admin-state-left">No links yet.</p>';
     };
 
     const readLinkRows = () => Array.from(footerLinks?.querySelectorAll('[data-footer-row]') || []).map((row) => ({
@@ -741,12 +762,19 @@
       href: row.querySelector('[data-footer-href]')?.value?.trim() || ''
     })).filter((item) => item.label && item.href);
 
-    const renderServicesRows = (items = []) => {
-      if (!contactServices) return;
-      contactServices.innerHTML = items.map((item, idx) => `<div class='admin-inline-form' data-service-row='${idx}'><input data-service-item value='${escapeHtml(item || '')}'><button type='button' data-service-remove='${idx}'>Remove</button></div>`).join('') || '<p class="admin-state admin-state-left">No services listed.</p>';
+    const renderThisSiteProofs = (items = []) => {
+      if (!thisSiteProofs) return;
+      thisSiteProofs.innerHTML = items.map((item, idx) => `<div class='admin-row-card' data-thissite-proof-row='${idx}'>
+        <label>Card title<input data-proof-title value='${escapeHtml(item.title || '')}'></label>
+        <label>Card body<textarea data-proof-body rows='2'>${escapeHtml(item.body || '')}</textarea></label>
+        <div class='admin-inline-form'><button type='button' data-proof-up='${idx}'>↑</button><button type='button' data-proof-down='${idx}'>↓</button><button type='button' data-proof-remove='${idx}'>Remove</button></div>
+      </div>`).join('') || '<p class="admin-state admin-state-left">No proof cards yet.</p>';
     };
 
-    const readServicesRows = () => Array.from(contactServices?.querySelectorAll('[data-service-row]') || []).map((row) => row.querySelector('[data-service-item]')?.value?.trim() || '').filter(Boolean);
+    const readThisSiteProofs = () => Array.from(thisSiteProofs?.querySelectorAll('[data-thissite-proof-row]') || []).map((row) => ({
+      title: row.querySelector('[data-proof-title]')?.value?.trim() || '',
+      body: row.querySelector('[data-proof-body]')?.value?.trim() || ''
+    })).filter((item) => item.title || item.body);
 
     const saveBlock = async (item, data) => {
       const payload = {
@@ -774,6 +802,7 @@
     state.press = getBlock(rows, 'home', 'press', 'Home Press & Testimonials');
     state.footer = getBlock(rows, 'global', 'footer', 'Global Footer');
     state.contact = getBlock(rows, 'contact', 'intro', 'Contact Intro');
+    state.thisSite = rows.find((item) => item.page === 'this-site' && item.block_key === 'intro') || null;
 
     const heroData = parseData(state.hero, {});
     heroForm.querySelector("[name='headline']").value = heroData.title || '';
@@ -795,9 +824,13 @@
     const contactData = parseData(state.contact, {});
     contactForm.querySelector("[name='title']").value = contactData.title || '';
     contactForm.querySelector("[name='paragraph']").value = contactData.subtitle || '';
-    contactForm.querySelector("[name='showServices']").checked = Boolean(contactData.showServicesPanel);
-    contactForm.querySelector("[name='servicesTitle']").value = contactData.servicesTitle || 'Services';
-    renderServicesRows(Array.isArray(contactData.services) ? contactData.services : []);
+
+    if (state.thisSite && thisSiteForm) {
+      const thisSiteData = parseData(state.thisSite, {});
+      thisSiteForm.querySelector("[name='intro']").value = thisSiteData.intro || '';
+      renderThisSiteProofs(Array.isArray(thisSiteData.proofs) ? thisSiteData.proofs : []);
+      thisSiteRoot?.removeAttribute('hidden');
+    }
 
     loading?.setAttribute('hidden', 'hidden');
     roots.forEach((node) => node.removeAttribute('hidden'));
@@ -807,22 +840,27 @@
       const f = new FormData(heroForm);
       const mediaId = String(f.get('backgroundMediaId') || '');
       const media = mediaItems.find((item) => String(item.id) === mediaId);
-      await saveBlock(state.hero, {
-        title: String(f.get('headline') || ''),
-        subtitle: String(f.get('subhead') || ''),
-        ctaPrimary: {
-          text: String(f.get('primaryText') || 'View Work'),
-          href: String(f.get('primaryHref') || '/work/')
-        },
-        ctaSecondary: {
-          text: String(f.get('secondaryText') || 'Contact Me'),
-          href: String(f.get('secondaryHref') || '/contact/')
-        },
-        alignment: String(f.get('alignment') || 'center'),
-        heroMediaId: mediaId || null,
-        heroMediaUrl: media?.public_url || null
-      });
-      toast('Hero saved', 'success');
+      showError('hero');
+      try {
+        await saveBlock(state.hero, {
+          title: String(f.get('headline') || ''),
+          subtitle: String(f.get('subhead') || ''),
+          ctaPrimary: {
+            text: String(f.get('primaryText') || 'View Work'),
+            href: String(f.get('primaryHref') || '/work/')
+          },
+          ctaSecondary: {
+            text: String(f.get('secondaryText') || 'Contact Me'),
+            href: String(f.get('secondaryHref') || '/contact/')
+          },
+          alignment: String(f.get('alignment') || 'center'),
+          heroMediaId: mediaId || null,
+          heroMediaUrl: media?.public_url || null
+        });
+        toast('Hero saved', 'success');
+      } catch (error) {
+        showError('hero', error.message || 'Hero save failed.');
+      }
     });
 
     pressAdd?.addEventListener('click', () => {
@@ -844,8 +882,13 @@
       renderPressRows(items);
     });
     pressSave?.addEventListener('click', async () => {
-      await saveBlock(state.press, { items: readPressRows() });
-      toast('Testimonials saved', 'success');
+      showError('press');
+      try {
+        await saveBlock(state.press, { items: readPressRows() });
+        toast('Press list saved', 'success');
+      } catch (error) {
+        showError('press', error.message || 'Press save failed.');
+      }
     });
 
     footerAdd?.addEventListener('click', () => {
@@ -853,35 +896,77 @@
     });
     footerLinks?.addEventListener('click', (event) => {
       const target = event.target; if (!(target instanceof HTMLElement)) return;
-      if (target.dataset.footerRemove == null) return;
-      const items = readLinkRows(); items.splice(Number(target.dataset.footerRemove), 1); renderLinkRows(items);
+      let items = readLinkRows();
+      if (target.dataset.footerRemove != null) items.splice(Number(target.dataset.footerRemove), 1);
+      if (target.dataset.footerUp != null) {
+        const i = Number(target.dataset.footerUp); if (i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+      }
+      if (target.dataset.footerDown != null) {
+        const i = Number(target.dataset.footerDown); if (i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+      }
+      renderLinkRows(items);
     });
     footerForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const f = new FormData(footerForm);
-      await saveBlock(state.footer, { leftText: String(f.get('blurb') || ''), links: readLinkRows(), smallPrint: '© Victor Lane' });
-      toast('Footer saved', 'success');
+      showError('footer');
+      try {
+        await saveBlock(state.footer, { leftText: String(f.get('blurb') || ''), links: readLinkRows(), smallPrint: '© Victor Lane' });
+        toast('Footer saved', 'success');
+      } catch (error) {
+        showError('footer', error.message || 'Footer save failed.');
+      }
     });
 
-    contactAdd?.addEventListener('click', () => {
-      const items = readServicesRows(); items.push(''); renderServicesRows(items);
-    });
-    contactServices?.addEventListener('click', (event) => {
-      const target = event.target; if (!(target instanceof HTMLElement)) return;
-      if (target.dataset.serviceRemove == null) return;
-      const items = readServicesRows(); items.splice(Number(target.dataset.serviceRemove), 1); renderServicesRows(items);
-    });
     contactForm?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const f = new FormData(contactForm);
-      await saveBlock(state.contact, {
-        title: String(f.get('title') || ''),
-        subtitle: String(f.get('paragraph') || ''),
-        showServicesPanel: f.get('showServices') === 'on',
-        servicesTitle: String(f.get('servicesTitle') || 'Services'),
-        services: readServicesRows()
-      });
-      toast('Contact intro saved', 'success');
+      showError('contact');
+      const existing = parseData(state.contact, {});
+      try {
+        await saveBlock(state.contact, {
+          ...existing,
+          title: String(f.get('title') || ''),
+          subtitle: String(f.get('paragraph') || '')
+        });
+        toast('Contact intro saved', 'success');
+      } catch (error) {
+        showError('contact', error.message || 'Contact save failed.');
+      }
+    });
+
+    thisSiteAddProof?.addEventListener('click', () => {
+      const items = readThisSiteProofs();
+      items.push({ title: '', body: '' });
+      renderThisSiteProofs(items);
+    });
+    thisSiteProofs?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      let items = readThisSiteProofs();
+      if (target.dataset.proofRemove != null) items.splice(Number(target.dataset.proofRemove), 1);
+      if (target.dataset.proofUp != null) {
+        const i = Number(target.dataset.proofUp); if (i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+      }
+      if (target.dataset.proofDown != null) {
+        const i = Number(target.dataset.proofDown); if (i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+      }
+      renderThisSiteProofs(items);
+    });
+    thisSiteForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.thisSite) return;
+      showError('thissite');
+      const f = new FormData(thisSiteForm);
+      try {
+        await saveBlock(state.thisSite, {
+          intro: String(f.get('intro') || ''),
+          proofs: readThisSiteProofs()
+        });
+        toast('This-site content saved', 'success');
+      } catch (error) {
+        showError('thissite', error.message || 'This-site save failed.');
+      }
     });
   };
 
