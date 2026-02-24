@@ -1,60 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
-  <title id="title">Portfolio architecture overview</title>
-  <desc id="desc">Diagram of Astro Pages, Workers API, D1, R2, Turnstile, and Cloudflare Access, with public and admin request flows.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">This Site architecture</title>
+  <desc id="desc">Clean architecture diagram showing Pages connected to Worker API, with D1 and R2 downstream and security controls surrounding privileged actions.</desc>
   <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0b0d" />
+      <stop offset="100%" stop-color="#121217" />
+    </linearGradient>
+    <linearGradient id="nodeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e25" />
+      <stop offset="100%" stop-color="#16161c" />
+    </linearGradient>
     <style>
-      .bg { fill: #0b0b0d; }
-      .panel { fill: #17171b; stroke: #3a3a42; stroke-width: 2; rx: 18; }
-      .text { fill: #f5f5f5; font-family: Inter, Arial, sans-serif; font-size: 24px; font-weight: 600; }
-      .small { fill: #d7d7de; font-family: Inter, Arial, sans-serif; font-size: 18px; }
-      .line { stroke: #f5f5f5; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .panel { fill: url(#nodeGrad); stroke: #3a3a44; stroke-width: 2; rx: 20; }
+      .heading { fill: #f5f5f5; font-family: Inter, Arial, sans-serif; font-size: 30px; font-weight: 700; }
+      .node { fill: #f5f5f5; font-family: Inter, Arial, sans-serif; font-size: 24px; font-weight: 600; }
+      .sub { fill: #d8d8df; font-family: Inter, Arial, sans-serif; font-size: 17px; }
+      .label { fill: #bdbdc8; font-family: Inter, Arial, sans-serif; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase; }
+      .flow { stroke: #f5f5f5; stroke-width: 3; fill: none; marker-end: url(#arrow); }
       .accent { stroke: #c1121f; }
-      .label { fill: #f5f5f5; font-family: Inter, Arial, sans-serif; font-size: 16px; }
+      .security { fill: #c1121f; fill-opacity: 0.08; stroke: #c1121f; stroke-width: 2; rx: 18; stroke-dasharray: 8 10; }
     </style>
     <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
       <path d="M0,0 L12,6 L0,12 z" fill="#f5f5f5" />
     </marker>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1200" height="760" />
+  <rect x="0" y="0" width="1200" height="720" fill="url(#bgGrad)" />
+  <text class="heading" x="80" y="84">/this-site public architecture</text>
+  <text class="sub" x="80" y="116">Static-first delivery with guarded mutation path</text>
 
-  <rect class="panel" x="60" y="70" width="280" height="110" />
-  <text class="text" x="200" y="132" text-anchor="middle">Visitors</text>
+  <rect class="panel" x="90" y="190" width="280" height="130" />
+  <text class="node" x="230" y="252" text-anchor="middle">Pages</text>
+  <text class="sub" x="230" y="281" text-anchor="middle">Astro static frontend</text>
 
-  <rect class="panel" x="460" y="70" width="280" height="110" />
-  <text class="text" x="600" y="132" text-anchor="middle">Pages (Astro)</text>
+  <rect class="panel" x="465" y="190" width="280" height="130" />
+  <text class="node" x="605" y="252" text-anchor="middle">Worker API</text>
+  <text class="sub" x="605" y="281" text-anchor="middle">Validation + policy checks</text>
 
-  <rect class="panel" x="860" y="70" width="280" height="110" />
-  <text class="text" x="1000" y="132" text-anchor="middle">Workers API</text>
+  <rect class="panel" x="840" y="130" width="250" height="120" />
+  <text class="node" x="965" y="188" text-anchor="middle">D1</text>
+  <text class="sub" x="965" y="216" text-anchor="middle">Relational records</text>
 
-  <rect class="panel" x="760" y="300" width="180" height="100" />
-  <text class="small" x="850" y="358" text-anchor="middle">D1</text>
+  <rect class="panel" x="840" y="270" width="250" height="120" />
+  <text class="node" x="965" y="328" text-anchor="middle">R2</text>
+  <text class="sub" x="965" y="356" text-anchor="middle">Object storage</text>
 
-  <rect class="panel" x="980" y="300" width="180" height="100" />
-  <text class="small" x="1070" y="358" text-anchor="middle">R2</text>
+  <path class="flow" d="M370 255 L455 255" />
+  <path class="flow" d="M745 255 L830 190" />
+  <path class="flow" d="M745 255 L830 330" />
 
-  <rect class="panel" x="510" y="300" width="200" height="100" />
-  <text class="small" x="610" y="358" text-anchor="middle">Turnstile</text>
+  <rect class="security" x="440" y="430" width="680" height="200" />
+  <text class="label" x="470" y="465">Security envelope for privileged operations</text>
 
-  <rect class="panel" x="180" y="300" width="260" height="100" />
-  <text class="small" x="310" y="348" text-anchor="middle">Cloudflare Access</text>
-  <text class="small" x="310" y="376" text-anchor="middle">(admin routes)</text>
+  <rect class="panel" x="470" y="485" width="200" height="110" />
+  <text class="sub" x="570" y="535" text-anchor="middle">Access gate</text>
+  <text class="sub" x="570" y="562" text-anchor="middle">(Cloudflare Access)</text>
 
-  <rect class="panel" x="80" y="520" width="420" height="150" />
-  <text class="text" x="290" y="580" text-anchor="middle">Admin / Reviewer</text>
-  <text class="small" x="290" y="615" text-anchor="middle">RBAC + audit logging</text>
+  <rect class="panel" x="690" y="485" width="200" height="110" />
+  <text class="sub" x="790" y="535" text-anchor="middle">RBAC roles</text>
+  <text class="sub" x="790" y="562" text-anchor="middle">admin / reviewer</text>
 
-  <path class="line" d="M340 125 L450 125" />
-  <text class="label" x="395" y="110" text-anchor="middle">public pages</text>
+  <rect class="panel" x="910" y="485" width="180" height="110" />
+  <text class="sub" x="1000" y="535" text-anchor="middle">Audit log</text>
+  <text class="sub" x="1000" y="562" text-anchor="middle">traceability</text>
 
-  <path class="line" d="M740 125 L850 125" />
-  <text class="label" x="795" y="110" text-anchor="middle">API calls</text>
+  <path class="flow accent" d="M230 320 L230 540 L460 540" />
+  <text class="label" x="230" y="360">admin path</text>
 
-  <path class="line" d="M980 180 L880 290" />
-  <path class="line" d="M1015 180 L1060 290" />
-  <path class="line" d="M860 180 L680 290" />
-
-  <path class="line accent" d="M310 520 L310 410" />
-  <path class="line accent" d="M440 350 L850 180" />
-  <text class="label" x="520" y="330">protected admin path</text>
+  <text class="label" x="90" y="668">Primary data path: Pages → Worker → D1 + R2</text>
 </svg>
