@@ -1476,6 +1476,21 @@
       if (title && data.title) title.textContent = String(data.title);
       if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
     }
+
+    const thisSiteIntro = byKey.get('this-site/intro');
+    if (thisSiteIntro && pageName === 'this-site') {
+      const data = parseData(thisSiteIntro, {});
+      const intro = document.querySelector('[data-site-thissite-intro]');
+      const proofGrid = document.querySelector('[data-site-thissite-proof-grid]');
+      if (intro && data.intro) intro.textContent = String(data.intro);
+      if (proofGrid && Array.isArray(data.proofs) && data.proofs.length) {
+        proofGrid.innerHTML = data.proofs.slice(0, 4).map((item) => {
+          const title = String(item.title || 'Proof point');
+          const body = String(item.body || 'Summary pending.');
+          return `<article class="this-site-proof-card"><h2>${title}</h2><p>${body}</p></article>`;
+        }).join('');
+      }
+    }
   }
 
   hydrateSiteBlocks().catch((error) => {
