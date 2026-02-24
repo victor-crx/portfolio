@@ -4,6 +4,7 @@
   const sessionExpiredMessage = 'Session expired. Open /api/admin/me in a new tab to re-auth, then refresh.';
   const page = document.body.dataset.adminPage;
   const isLocalHost = /(^localhost$)|(^127\.0\.0\.1$)|(^\[::1\]$)|(^::1$)/.test(window.location.hostname);
+  const isDevMode = isLocalHost;
   const token = sessionStorage.getItem(tokenKey) || '';
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char] || char));
@@ -37,6 +38,7 @@
       </div>`;
     const active = document.activeElement;
     document.body.appendChild(overlay);
+    overlay.classList.add('open');
     const cancelBtn = overlay.querySelector('[data-modal-cancel]');
     const confirmBtn = overlay.querySelector('[data-modal-confirm]');
     const focusables = () => overlay.querySelectorAll('button,[href],input,textarea,select,[tabindex]:not([tabindex="-1"])');
@@ -88,6 +90,7 @@
       </div>`;
     const active = document.activeElement;
     document.body.appendChild(overlay);
+    overlay.classList.add('open');
     const cancelBtn = overlay.querySelector('[data-modal-cancel]');
     const confirmBtn = overlay.querySelector('[data-modal-confirm]');
     const typedInput = overlay.querySelector('[data-modal-typed-input]');
@@ -176,10 +179,20 @@
         sessionStorage.removeItem(tokenKey);
         window.location.href = '/admin/login/';
       }
-      throw new Error(payload?.error || 'Unauthorized');
+      const error = new Error(payload?.error || 'Unauthorized');
+      error.status = response.status;
+      throw error;
     }
-    if (response.status === 403) throw new Error(payload?.error || 'Forbidden');
-    if (!response.ok) throw new Error(payload?.error || `Request failed: ${response.status}`);
+    if (response.status === 403) {
+      const error = new Error(payload?.error || 'Forbidden');
+      error.status = response.status;
+      throw error;
+    }
+    if (!response.ok) {
+      const error = new Error(payload?.error || `Request failed: ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
     return payload;
   };
 
@@ -609,6 +622,13 @@
     const uploadStatus = document.querySelector('#admin-media-upload-status');
     const mediaPublicBase = 'https://media.vrstech.dev/';
 
+    const deleteErrorByStatus = {
+      400: 'Delete request was invalid. Please refresh and try again.',
+      401: 'Your admin session expired. Re-authenticate and try deleting again.',
+      403: 'You do not have permission to delete this media item.',
+      502: 'Media service is temporarily unavailable (502). Please try again shortly.'
+    };
+
     const buildPublicUrl = (item) => String(item?.public_url || '').trim() || `${mediaPublicBase.replace(/\/+$/, '')}/${String(item?.key || '').replace(/^\/+/, '')}`;
 
     const loadMedia = async (q = '') => {
@@ -634,34 +654,51 @@
         await fetchJSON(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ alt_text: alt }) });
         toast('Media updated', 'success');
       }));
-        tableBody.querySelectorAll('[data-delete-id]').forEach((btn) => btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-delete-id') || '';
-        const key = btn.getAttribute('data-delete-key') || '';
-        const url = btn.getAttribute('data-delete-url') || '';
-        const attachedCount = Number(btn.getAttribute('data-delete-attached') || 0);
-        const visibility = btn.getAttribute('data-delete-visibility') || '';
-        const lines = [
-          `URL: ${url}`,
-          `Key: ${key}`,
-          `Attached to ${attachedCount} project(s)`
-        ];
-        if (visibility === 'public') lines.push('WARNING: This media is public and may be live on the site or externally linked.');
-        const confirmed = await confirmTypeModal({ title: 'Delete media asset?', lines, token: 'DELETE', confirmText: 'Delete' });
-        if (!confirmed) return;
-        try {
-          await fetchJSON(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ confirm: 'DELETE' }) });
-          tableBody.querySelector(`[data-media-row-id="${id}"]`)?.remove();
-          if (!tableBody.querySelector('tr')) renderTableState(tableBody, 'empty', 8);
-          toast('Deleted', 'success');
-        } catch (error) {
-          toast(error.message || 'Delete failed. Media was not removed from storage, so no database records were changed.', 'error');
-        }
-      }));
+
       } catch (error) {
         renderTableState(tableBody, 'error', 8, error.message || 'Failed to load media.');
         throw error;
       }
     };
+
+
+    tableBody?.addEventListener('click', async (event) => {
+      const deleteBtn = event.target.closest('[data-delete-id]');
+      if (!deleteBtn || !tableBody.contains(deleteBtn)) return;
+
+      const id = deleteBtn.getAttribute('data-delete-id') || '';
+      const key = deleteBtn.getAttribute('data-delete-key') || '';
+      const url = deleteBtn.getAttribute('data-delete-url') || '';
+      const attachedCount = Number(deleteBtn.getAttribute('data-delete-attached') || 0);
+      const visibility = deleteBtn.getAttribute('data-delete-visibility') || '';
+      const lines = [
+        `URL: ${url}`,
+        `Key: ${key}`,
+        `Attached to ${attachedCount} project(s)`
+      ];
+      if (visibility === 'public') lines.push('WARNING: This media is public and may be live on the site or externally linked.');
+
+      if (isDevMode) console.debug('[admin/media] delete click', { id, key, attachedCount, visibility });
+
+      const confirmed = await confirmTypeModal({ title: 'Delete media asset?', lines, token: 'DELETE', confirmText: 'Delete' });
+      if (!confirmed) return;
+
+      const prevLabel = deleteBtn.textContent;
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = '⏳ Deleting...';
+      try {
+        await fetchJSON(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ confirm: 'DELETE' }) });
+        tableBody.querySelector(`[data-media-row-id="${id}"]`)?.remove();
+        if (!tableBody.querySelector('tr')) renderTableState(tableBody, 'empty', 8);
+        toast('Deleted', 'success');
+      } catch (error) {
+        const statusMessage = deleteErrorByStatus[error?.status];
+        toast(statusMessage || error.message || 'Delete failed. Media was not removed from storage, so no database records were changed.', 'error');
+      } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = prevLabel || 'Delete';
+      }
+    });
 
     uploadForm?.addEventListener('submit', async (event) => {
       event.preventDefault();

@@ -272,8 +272,9 @@ button:hover,
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  z-index: 2000;
   padding: var(--space-5);
+  overflow-y: auto;
 }
 
 .admin-modal-overlay.open {
