@@ -340,6 +340,7 @@ img { max-width: 100%; display: block; }
 }
 
 .hero {
+  min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
   min-height: calc(var(--vh, 1vh) * 100);
@@ -892,6 +893,8 @@ main.section > .container {
   position: relative;
   isolation: isolate;
   min-height: 0;
+  padding-top: var(--section-space-sm);
+  padding-bottom: var(--section-space-sm);
 }
 .quote-band::before {
   content: '';

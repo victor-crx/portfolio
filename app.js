@@ -1354,15 +1354,19 @@
       const subtitle = document.querySelector('[data-site-hero-subtitle]');
       const ctaPrimary = document.querySelector('[data-site-hero-cta-primary]');
       const ctaSecondary = document.querySelector('[data-site-hero-cta-secondary]');
+      const legacyPrimaryText = String(data.primaryCtaText || data.ctaText || 'View Work');
+      const legacyPrimaryHref = String(data.primaryCtaHref || data.ctaHref || '/work/');
+      const primary = (data.ctaPrimary && typeof data.ctaPrimary === 'object') ? data.ctaPrimary : {};
+      const secondary = (data.ctaSecondary && typeof data.ctaSecondary === 'object') ? data.ctaSecondary : {};
       if (title && data.title) title.textContent = String(data.title);
       if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
       if (ctaPrimary) {
-        ctaPrimary.textContent = String(data.primaryCtaText || 'View my work');
-        ctaPrimary.href = String(data.primaryCtaHref || '/work/');
+        ctaPrimary.textContent = String(primary.text || legacyPrimaryText);
+        ctaPrimary.href = String(primary.href || legacyPrimaryHref);
       }
       if (ctaSecondary) {
-        ctaSecondary.textContent = String(data.secondaryCtaText || 'Contact me');
-        ctaSecondary.href = String(data.secondaryCtaHref || '/contact/');
+        ctaSecondary.textContent = String(secondary.text || data.secondaryCtaText || 'Contact Me');
+        ctaSecondary.href = String(secondary.href || data.secondaryCtaHref || '/contact/');
       }
       if (heroRoot) {
         heroRoot.classList.remove('hero-align-left', 'hero-align-center', 'hero-align-right');
