@@ -130,8 +130,8 @@ sql.push(`INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_
   '${JSON.stringify({
     title: 'Systems clarity, collaborative execution, elegant outcomes.',
     subtitle: 'Brochure-inspired portfolio design with a technical backbone, curated across Systems, Collaboration & Live, Delivery, and Creative lanes.',
-    ctaText: 'Contact Me',
-    ctaHref: '/contact/',
+    ctaPrimary: { text: 'View Work', href: '/work/' },
+    ctaSecondary: { text: 'Contact Me', href: '/contact/' },
     heroMediaId: null,
     heroMediaUrl: null
   }).replaceAll("'", "''")}',

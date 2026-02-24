@@ -58,10 +58,14 @@ const SITE_BLOCK_DEFAULTS: SiteBlockSeed[] = [
     data: {
       title: 'Systems clarity, collaborative execution, elegant outcomes.',
       subtitle: 'Brochure-inspired portfolio design with a technical backbone, curated across Systems, Collaboration & Live, Delivery, and Creative lanes.',
-      primaryCtaText: 'View my work',
-      primaryCtaHref: '/work/',
-      secondaryCtaText: 'Contact me',
-      secondaryCtaHref: '/contact/',
+      ctaPrimary: {
+        text: 'View Work',
+        href: '/work/'
+      },
+      ctaSecondary: {
+        text: 'Contact Me',
+        href: '/contact/'
+      },
       alignment: 'center',
       heroMediaId: null,
       heroMediaUrl: null

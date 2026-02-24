@@ -724,10 +724,12 @@
     heroForm.querySelector("[name='headline']").value = heroData.title || '';
     heroForm.querySelector("[name='subhead']").value = heroData.subtitle || '';
     heroForm.querySelector("[name='backgroundMediaId']").value = heroData.heroMediaId ? String(heroData.heroMediaId) : '';
-    heroForm.querySelector("[name='primaryText']").value = heroData.primaryCtaText || 'View my work';
-    heroForm.querySelector("[name='primaryHref']").value = heroData.primaryCtaHref || '/work/';
-    heroForm.querySelector("[name='secondaryText']").value = heroData.secondaryCtaText || 'Contact me';
-    heroForm.querySelector("[name='secondaryHref']").value = heroData.secondaryCtaHref || '/contact/';
+    const heroPrimary = (heroData.ctaPrimary && typeof heroData.ctaPrimary === 'object') ? heroData.ctaPrimary : {};
+    const heroSecondary = (heroData.ctaSecondary && typeof heroData.ctaSecondary === 'object') ? heroData.ctaSecondary : {};
+    heroForm.querySelector("[name='primaryText']").value = heroPrimary.text || heroData.primaryCtaText || heroData.ctaText || 'View Work';
+    heroForm.querySelector("[name='primaryHref']").value = heroPrimary.href || heroData.primaryCtaHref || heroData.ctaHref || '/work/';
+    heroForm.querySelector("[name='secondaryText']").value = heroSecondary.text || heroData.secondaryCtaText || 'Contact Me';
+    heroForm.querySelector("[name='secondaryHref']").value = heroSecondary.href || heroData.secondaryCtaHref || '/contact/';
     heroForm.querySelector("[name='alignment']").value = heroData.alignment || 'center';
 
     renderPressRows(parseData(state.press, { items: [] }).items || []);
@@ -753,10 +755,14 @@
       await saveBlock(state.hero, {
         title: String(f.get('headline') || ''),
         subtitle: String(f.get('subhead') || ''),
-        primaryCtaText: String(f.get('primaryText') || 'View my work'),
-        primaryCtaHref: String(f.get('primaryHref') || '/work/'),
-        secondaryCtaText: String(f.get('secondaryText') || 'Contact me'),
-        secondaryCtaHref: String(f.get('secondaryHref') || '/contact/'),
+        ctaPrimary: {
+          text: String(f.get('primaryText') || 'View Work'),
+          href: String(f.get('primaryHref') || '/work/')
+        },
+        ctaSecondary: {
+          text: String(f.get('secondaryText') || 'Contact Me'),
+          href: String(f.get('secondaryHref') || '/contact/')
+        },
         alignment: String(f.get('alignment') || 'center'),
         heroMediaId: mediaId || null,
         heroMediaUrl: media?.public_url || null
