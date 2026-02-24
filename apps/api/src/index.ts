@@ -260,6 +260,13 @@ const audit = async (
     .run();
 };
 
+const isMissingR2ObjectError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { name?: string; code?: string; message?: string };
+  const fingerprint = `${maybeError.name ?? ''} ${maybeError.code ?? ''} ${maybeError.message ?? ''}`.toLowerCase();
+  return fingerprint.includes('nosuchkey') || fingerprint.includes('not found') || fingerprint.includes('does not exist');
+};
+
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
 app.get('/api/projects', async (c) => {
@@ -1054,11 +1061,26 @@ app.delete('/api/admin/media/:id', async (c) => {
     .first<{ total: number }>();
   const detachedCount = Number(detachedCountRow?.total ?? 0);
 
-  await c.env.DB.prepare('DELETE FROM project_media WHERE media_asset_id = ?').bind(id).run();
-  await c.env.DB.prepare('DELETE FROM media_assets WHERE id = ?').bind(id).run();
-  await (c.env.R2_BUCKET as unknown as { delete: (key: string) => Promise<void> }).delete(media.key);
+  try {
+    await (c.env.R2_BUCKET as unknown as { delete: (key: string) => Promise<void> }).delete(media.key);
+  } catch (error) {
+    if (!isMissingR2ObjectError(error)) {
+      console.error('media.delete.r2_failed', { mediaId: id, key: media.key, error: String(error) });
+      return c.json({ error: 'Failed to delete media from storage. No database changes were made.' }, 502);
+    }
+  }
 
-  await audit(c.env.DB, identity, 'delete', 'media_asset', id, { key: media.key, detachedCount });
+  try {
+    await c.env.DB.prepare('BEGIN').run();
+    await c.env.DB.prepare('DELETE FROM project_media WHERE media_asset_id = ?').bind(id).run();
+    await c.env.DB.prepare('DELETE FROM media_assets WHERE id = ?').bind(id).run();
+    await audit(c.env.DB, identity, 'delete', 'media_asset', id, { key: media.key, detachedCount });
+    await c.env.DB.prepare('COMMIT').run();
+  } catch (error) {
+    await c.env.DB.prepare('ROLLBACK').run().catch(() => undefined);
+    console.error('media.delete.db_failed_after_r2_delete', { mediaId: id, key: media.key, error: String(error) });
+    return c.json({ error: 'Storage delete succeeded, but database cleanup failed. Please contact support.' }, 500);
+  }
 
   return c.json({
     ok: true,

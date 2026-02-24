@@ -17,4 +17,5 @@ interface R2PutOptions {
 
 interface R2Bucket {
   put(key: string, value: ArrayBuffer | ArrayBufferView | string | null, options?: R2PutOptions): Promise<void>;
+  delete(key: string): Promise<void>;
 }
