@@ -16,7 +16,7 @@
     <button data-admin-logout>Logout</button>
   </aside>
   <main class='admin-panel'>
-    <h1>Certifications</h1><form id='admin-form' class='admin-form'><input name='id' placeholder='id (blank=create)'><input name='title' placeholder='title' required><input name='issuer' placeholder='issuer'><input name='credential_id' placeholder='credential id'><input name='credential_url' placeholder='credential url'><input name='issued_on' placeholder='issued_on'><input name='expires_on' placeholder='expires_on'><input name='status' placeholder='draft/published'><input name='featured_order' placeholder='featured_order'><button type='submit'>Save</button></form><table class='admin-table'><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
+    <h1>Certifications</h1><form id='admin-form' class='admin-form'><input name='id' placeholder='id (blank=create)'><input name='title' placeholder='title' required><input name='issuer' placeholder='issuer'><input name='credential_id' placeholder='credential id'><input name='credential_url' placeholder='credential url'><input name='issued_on' placeholder='issued_on'><input name='expires_on' placeholder='expires_on'><input name='status' placeholder='draft/published'><input name='featured_order' placeholder='featured_order'><input name='progress_state' placeholder='passed/in_progress/planned'><input name='target_date' placeholder='target_date (ISO)'><button type='submit'>Save</button></form><table class='admin-table'><thead><tr><th>ID</th><th>Title</th><th>Progress</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
   </main>
 </div>
 <script src='/admin.js' defer></script>

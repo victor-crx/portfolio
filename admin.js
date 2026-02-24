@@ -440,7 +440,7 @@
 
   if (page === 'projects') wireCrud({ listPath: '/api/admin/projects', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   if (page === 'services') wireCrud({ listPath: '/api/admin/services', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
-  if (page === 'certifications') wireCrud({ listPath: '/api/admin/certifications', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
+  if (page === 'certifications') wireCrud({ listPath: '/api/admin/certifications', tableFields: ['id', 'title', 'progress_state', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   if (page === 'labs') wireCrud({ listPath: '/api/admin/labs', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
   if (page === 'site') wireSiteBlocks();
 
