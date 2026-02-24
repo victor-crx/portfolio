@@ -75,10 +75,16 @@
     <div class="container">
       <div class="section-head reveal"><p class="kicker">Index</p><h2 class="balance no-widow">Master Work Grid</h2><p>Filter by collection lane, project type, and search text. Open any card for full problem/constraints/actions/results details.</p><p data-results-count class="meta-line"></p></div>
 
-      <section class="credentials-strip" aria-label="Credentials progress" data-credentials-strip hidden>
+      <section class="credentials-strip" aria-label="Credentials progress" data-credentials-strip>
         <p class="credentials-strip-title">Credentials</p>
-        <p class="credentials-strip-stats"><span>Passed <strong data-credentials-passed>0</strong></span><span aria-hidden="true">|</span><span>In progress <strong data-credentials-in-progress>0</strong></span><span aria-hidden="true">|</span><span>Planned <strong data-credentials-planned>0</strong></span></p>
+        <p class="credentials-strip-empty" data-credentials-empty hidden>Add certifications in Admin</p>
+        <p class="credentials-strip-stats"><span>Passed <strong data-credentials-passed>0</strong></span><span class="credentials-strip-sample" data-credentials-passed-samples></span><span aria-hidden="true">|</span><span>In progress <strong data-credentials-in-progress>0</strong></span><span class="credentials-strip-sample" data-credentials-in-progress-samples></span><span aria-hidden="true">|</span><span>Planned <strong data-credentials-planned>0</strong></span><span class="credentials-strip-sample" data-credentials-planned-samples></span></p>
         <p class="credentials-strip-next" data-credentials-next hidden></p>
+        <a class="credentials-strip-link" href="#certifications" data-credentials-view-all hidden>View all</a>
+        <details class="credentials-strip-details" id="certifications" data-credentials-list hidden>
+          <summary>Published certifications</summary>
+          <ul class="credentials-strip-list" data-credentials-list-items></ul>
+        </details>
       </section>
 
       <section class="filters" aria-label="Filters">

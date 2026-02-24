@@ -951,6 +951,42 @@ main.section > .container {
   color: var(--text);
   font-weight: 600;
 }
+.credentials-strip-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.credentials-strip-sample {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.credentials-strip-link {
+  margin-left: auto;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(245, 245, 245, 0.25);
+}
+.credentials-strip-link:hover,
+.credentials-strip-link:focus-visible {
+  color: var(--text);
+  border-bottom-color: rgba(245, 245, 245, 0.6);
+}
+.credentials-strip-details {
+  width: 100%;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+.credentials-strip-details summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.credentials-strip-list {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.2rem;
+}
 .credentials-strip-next {
   color: var(--muted);
 }
