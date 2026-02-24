@@ -1,6 +1,7 @@
 (function () {
   const tokenKey = 'admin_token';
   const meCacheKey = 'admin_me';
+  const sessionExpiredMessage = 'Session expired. Open /api/admin/me in a new tab to re-auth, then refresh.';
   const page = document.body.dataset.adminPage;
   const isLocalHost = /(^localhost$)|(^127\.0\.0\.1$)|(^\[::1\]$)|(^::1$)/.test(window.location.hostname);
   const token = sessionStorage.getItem(tokenKey) || '';
@@ -154,9 +155,18 @@
     if (isLocalHost && token) headers.Authorization = `Bearer ${token}`;
 
     const response = await fetch(path, { ...options, headers });
+    const contentType = response.headers.get('content-type') || '';
+    const raw = await response.text();
+    const isLikelyHtml = contentType.includes('text/html') || /^\s*</.test(raw || '');
+
+    if (isLikelyHtml) {
+      toast(sessionExpiredMessage, 'error');
+      throw new Error(sessionExpiredMessage);
+    }
+
     let payload = null;
     try {
-      payload = await response.json();
+      payload = raw ? JSON.parse(raw) : null;
     } catch {
       payload = null;
     }
@@ -193,6 +203,10 @@
     }
     if (state === 'empty') {
       tbody.innerHTML = `<tr><td colspan="${colSpan}" class="admin-state">${escapeHtml(message || 'No records found.')}</td></tr>`;
+      return;
+    }
+    if (state === 'error') {
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" class="admin-state">${escapeHtml(message || 'Failed to load data. Please retry.')}</td></tr>`;
     }
   };
 
@@ -216,6 +230,12 @@
     });
     const logoutButton = nav.querySelector('[data-admin-logout]');
     if (logoutButton && !isLocalHost) logoutButton.style.display = 'none';
+    const reauthLink = document.createElement('a');
+    reauthLink.href = '/api/admin/me';
+    reauthLink.target = '_blank';
+    reauthLink.rel = 'noopener noreferrer';
+    reauthLink.textContent = 'Re-auth';
+    logoutButton?.insertAdjacentElement('beforebegin', reauthLink);
   }
 
   if (page === 'login') {
@@ -273,26 +293,31 @@
     const form = document.querySelector(formSelector);
 
     const load = async () => {
-      renderTableState(tableBody, 'loading', tableFields.length + 1);
-      const payload = await fetchJSON(listPath);
-      const data = Array.isArray(payload.data) ? payload.data : [];
-      if (!data.length) {
-        renderTableState(tableBody, 'empty', tableFields.length + 1);
-        return;
-      }
-      tableBody.innerHTML = data.map((item) => `<tr data-row-id="${item[idField]}">${tableFields.map((f) => `<td>${escapeHtml(item[f] ?? '')}</td>`).join('')}<td><button type="button" data-edit='${JSON.stringify(item).replace(/'/g, '&apos;')}'>Edit</button></td></tr>`).join('');
-      tableBody.querySelectorAll('[data-edit]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const raw = btn.getAttribute('data-edit');
-          if (!raw || !form) return;
-          const item = JSON.parse(raw.replace(/&apos;/g, "'"));
-          Object.entries(item).forEach(([key, value]) => {
-            const input = form.querySelector(`[name="${key}"]`);
-            if (!input) return;
-            input.value = typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value);
+      try {
+        renderTableState(tableBody, 'loading', tableFields.length + 1);
+        const payload = await fetchJSON(listPath);
+        const data = Array.isArray(payload.data) ? payload.data : [];
+        if (!data.length) {
+          renderTableState(tableBody, 'empty', tableFields.length + 1);
+          return;
+        }
+        tableBody.innerHTML = data.map((item) => `<tr data-row-id="${item[idField]}">${tableFields.map((f) => `<td>${escapeHtml(item[f] ?? '')}</td>`).join('')}<td><button type="button" data-edit='${JSON.stringify(item).replace(/'/g, '&apos;')}'>Edit</button></td></tr>`).join('');
+        tableBody.querySelectorAll('[data-edit]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const raw = btn.getAttribute('data-edit');
+            if (!raw || !form) return;
+            const item = JSON.parse(raw.replace(/&apos;/g, "'"));
+            Object.entries(item).forEach(([key, value]) => {
+              const input = form.querySelector(`[name="${key}"]`);
+              if (!input) return;
+              input.value = typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value);
+            });
           });
         });
-      });
+      } catch (error) {
+        renderTableState(tableBody, 'error', tableFields.length + 1, error.message || 'Failed to load records.');
+        throw error;
+      }
     };
 
     form?.addEventListener('submit', async (event) => {
@@ -320,7 +345,7 @@
       }
     });
 
-    await load();
+    await load().catch((error) => toast(error.message || 'Failed to load records', 'error'));
   };
 
   const wireSiteBlocks = async () => {
@@ -365,29 +390,34 @@
     };
 
     const load = async () => {
-      renderTableState(tableBody, 'loading', tableFields.length + 1);
-      const payload = await fetchJSON(listPath);
-      const data = Array.isArray(payload.data) ? payload.data : [];
-      if (!data.length) return renderTableState(tableBody, 'empty', tableFields.length + 1);
-      tableBody.innerHTML = data.map((item) => `<tr>${tableFields.map((f) => `<td>${escapeHtml(item[f] ?? '')}</td>`).join('')}<td><button type="button" data-edit='${JSON.stringify(item).replace(/'/g, '&apos;')}'>Edit</button></td></tr>`).join('');
-      tableBody.querySelectorAll('[data-edit]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const raw = btn.getAttribute('data-edit');
-          if (!raw || !form) return;
-          const item = JSON.parse(raw.replace(/&apos;/g, "'"));
-          form.querySelector('[name="id"]').value = String(item.id || '');
-          form.querySelector('[name="page"]').value = String(item.page || 'home');
-          syncBlockOptions();
-          form.querySelector('[name="block_key"]').value = String(item.block_key || '');
-          form.querySelector('[name="title"]').value = String(item.title || '');
-          form.querySelector('[name="body"]').value = String(item.body || '');
-          form.querySelector('[name="status"]').value = String(item.status || 'draft');
-          form.querySelector('[name="featured_order"]').value = item.featured_order == null ? '' : String(item.featured_order);
-          const parsed = (() => { try { return JSON.parse(item.data_json || '{}'); } catch { return {}; } })();
-          jsonInput.value = JSON.stringify(parsed, null, 2);
-          validateJson();
+      try {
+        renderTableState(tableBody, 'loading', tableFields.length + 1);
+        const payload = await fetchJSON(listPath);
+        const data = Array.isArray(payload.data) ? payload.data : [];
+        if (!data.length) return renderTableState(tableBody, 'empty', tableFields.length + 1);
+        tableBody.innerHTML = data.map((item) => `<tr>${tableFields.map((f) => `<td>${escapeHtml(item[f] ?? '')}</td>`).join('')}<td><button type="button" data-edit='${JSON.stringify(item).replace(/'/g, '&apos;')}'>Edit</button></td></tr>`).join('');
+        tableBody.querySelectorAll('[data-edit]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const raw = btn.getAttribute('data-edit');
+            if (!raw || !form) return;
+            const item = JSON.parse(raw.replace(/&apos;/g, "'"));
+            form.querySelector('[name="id"]').value = String(item.id || '');
+            form.querySelector('[name="page"]').value = String(item.page || 'home');
+            syncBlockOptions();
+            form.querySelector('[name="block_key"]').value = String(item.block_key || '');
+            form.querySelector('[name="title"]').value = String(item.title || '');
+            form.querySelector('[name="body"]').value = String(item.body || '');
+            form.querySelector('[name="status"]').value = String(item.status || 'draft');
+            form.querySelector('[name="featured_order"]').value = item.featured_order == null ? '' : String(item.featured_order);
+            const parsed = (() => { try { return JSON.parse(item.data_json || '{}'); } catch { return {}; } })();
+            jsonInput.value = JSON.stringify(parsed, null, 2);
+            validateJson();
+          });
         });
-      });
+      } catch (error) {
+        renderTableState(tableBody, 'error', tableFields.length + 1, error.message || 'Failed to load site blocks.');
+        throw error;
+      }
     };
 
     pageSelect?.addEventListener('change', syncBlockOptions);
@@ -427,7 +457,7 @@
 
     syncBlockOptions();
     if (jsonInput && !jsonInput.value) jsonInput.value = '{}';
-    await load();
+    await load().catch((error) => toast(error.message || 'Failed to load site blocks', 'error'));
   };
 
   if (page === 'dashboard') {
@@ -435,7 +465,7 @@
       const root = document.querySelector('[data-dashboard-counts]');
       if (!root) return;
       root.innerHTML = Object.entries(payload.counts || {}).map(([key, value]) => `<li><strong>${escapeHtml(key)}</strong>: ${escapeHtml(value)}</li>`).join('');
-    });
+    }).catch((error) => toast(error.message || 'Failed to load dashboard', 'error'));
   }
 
   if (page === 'projects') wireCrud({ listPath: '/api/admin/projects', tableFields: ['id', 'title', 'status', 'updated_at'], tableBodySelector: '#admin-table-body', formSelector: '#admin-form' });
@@ -510,16 +540,21 @@
     };
 
     const load = async () => {
-      renderTableState(tableBody, 'loading', 8);
-      const payload = await fetchJSON(`/api/admin/inquiries?${buildQuery()}`);
-      state.items = payload.data || [];
-      if (!state.items.length) {
-        renderTableState(tableBody, 'empty', 8, 'No inquiries match these filters.');
-      } else {
-        tableBody.innerHTML = state.items.map((item) => `<tr data-view-id="${item.id}"><td>${item.id}</td><td>${escapeHtml(item.inquiry_type)}</td><td>${escapeHtml(item.email)}</td><td>${escapeHtml(item.subject)}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(item.created_at)}</td><td>${escapeHtml(item.assigned_to_email || '-')}</td><td><button data-open-id="${item.id}">View</button></td></tr>`).join('');
-        tableBody.querySelectorAll('[data-open-id]').forEach((btn) => btn.addEventListener('click', () => openDetail(btn.dataset.openId)));
+      try {
+        renderTableState(tableBody, 'loading', 8);
+        const payload = await fetchJSON(`/api/admin/inquiries?${buildQuery()}`);
+        state.items = payload.data || [];
+        if (!state.items.length) {
+          renderTableState(tableBody, 'empty', 8, 'No inquiries match these filters.');
+        } else {
+          tableBody.innerHTML = state.items.map((item) => `<tr data-view-id="${item.id}"><td>${item.id}</td><td>${escapeHtml(item.inquiry_type)}</td><td>${escapeHtml(item.email)}</td><td>${escapeHtml(item.subject)}</td><td>${escapeHtml(item.status)}</td><td>${escapeHtml(item.created_at)}</td><td>${escapeHtml(item.assigned_to_email || '-')}</td><td><button data-open-id="${item.id}">View</button></td></tr>`).join('');
+          tableBody.querySelectorAll('[data-open-id]').forEach((btn) => btn.addEventListener('click', () => openDetail(btn.dataset.openId)));
+        }
+        renderPagination(paginationEl, { ...payload.pagination, onChange: async (nextPage) => { state.page = nextPage; await load(); } });
+      } catch (error) {
+        renderTableState(tableBody, 'error', 8, error.message || 'Failed to load inquiries.');
+        throw error;
       }
-      renderPagination(paginationEl, { ...payload.pagination, onChange: async (nextPage) => { state.page = nextPage; await load(); } });
     };
 
     filtersForm?.addEventListener('submit', async (event) => { event.preventDefault(); state.page = 1; await load(); });
@@ -577,15 +612,16 @@
     const buildPublicUrl = (item) => String(item?.public_url || '').trim() || `${mediaPublicBase.replace(/\/+$/, '')}/${String(item?.key || '').replace(/^\/+/, '')}`;
 
     const loadMedia = async (q = '') => {
-      renderTableState(tableBody, 'loading', 8);
-      const path = q ? `/api/admin/media?q=${encodeURIComponent(q)}` : '/api/admin/media';
-      const payload = await fetchJSON(path, { headers: {} });
-      const data = payload.data || [];
-      if (!data.length) {
-        renderTableState(tableBody, 'empty', 8);
-        return;
-      }
-      tableBody.innerHTML = data.map((item) => {
+      try {
+        renderTableState(tableBody, 'loading', 8);
+        const path = q ? `/api/admin/media?q=${encodeURIComponent(q)}` : '/api/admin/media';
+        const payload = await fetchJSON(path, { headers: {} });
+        const data = payload.data || [];
+        if (!data.length) {
+          renderTableState(tableBody, 'empty', 8);
+          return;
+        }
+        tableBody.innerHTML = data.map((item) => {
         const url = buildPublicUrl(item);
         const attachedCount = Number(item.attached_count || 0);
         return `<tr data-media-row-id="${item.id ?? ''}"><td>${item.id ?? ''}</td><td><code>${item.key ?? ''}</code></td><td><input class='admin-media-url-input' data-url readonly value="${url}" title="${url}"></td><td>${item.mime_type ?? ''}</td><td>${item.visibility ?? ''}</td><td>${attachedCount}</td><td><input data-alt-id="${item.id}" value="${item.alt_text ?? ''}"></td><td><button data-copy-url="${url}">Copy URL</button><button data-copy-key="${item.key ?? ''}">Copy Key</button><button data-save-id="${item.id}">Save</button><button data-delete-id="${item.id}" data-delete-key="${item.key ?? ''}" data-delete-url="${url}" data-delete-attached="${attachedCount}" data-delete-visibility="${item.visibility ?? ''}">Delete</button></td></tr>`;
@@ -598,7 +634,7 @@
         await fetchJSON(`/api/admin/media/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ alt_text: alt }) });
         toast('Media updated', 'success');
       }));
-      tableBody.querySelectorAll('[data-delete-id]').forEach((btn) => btn.addEventListener('click', async () => {
+        tableBody.querySelectorAll('[data-delete-id]').forEach((btn) => btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-delete-id') || '';
         const key = btn.getAttribute('data-delete-key') || '';
         const url = btn.getAttribute('data-delete-url') || '';
@@ -621,6 +657,10 @@
           toast(error.message || 'Delete failed', 'error');
         }
       }));
+      } catch (error) {
+        renderTableState(tableBody, 'error', 8, error.message || 'Failed to load media.');
+        throw error;
+      }
     };
 
     uploadForm?.addEventListener('submit', async (event) => {
@@ -642,7 +682,7 @@
       await loadMedia(q);
     });
 
-    loadMedia();
+    loadMedia().catch((error) => toast(error.message || 'Failed to load media', 'error'));
   }
 
 
@@ -854,6 +894,9 @@
       const rows = payload.data || [];
       if (!rows.length) return renderTableState(tbody, 'empty', 5);
       tbody.innerHTML = rows.map((item) => `<tr><td>${item.id}</td><td>${escapeHtml(item.action)}</td><td>${escapeHtml(item.entity_type)}</td><td>${escapeHtml(item.entity_id)}</td><td>${escapeHtml(item.created_at)}</td></tr>`).join('');
+    }).catch((error) => {
+      renderTableState(tbody, 'error', 5, error.message || 'Failed to load audit log.');
+      toast(error.message || 'Failed to load audit log', 'error');
     });
   }
 })();
