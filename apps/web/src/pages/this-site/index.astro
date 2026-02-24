@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="index,follow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#0B0B0D" />
+  <meta name="color-scheme" content="dark" />
+  <title>This Site — Victor Lane</title>
+  <meta name="description" content="High-level architecture and workflow notes for this portfolio site." />
+  <link rel="canonical" href="https://portfolio-6nh.pages.dev/this-site/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Victor Lane Portfolio" />
+  <meta property="og:title" content="This Site — Victor Lane" />
+  <meta property="og:description" content="High-level architecture and workflow notes for this portfolio site." />
+  <meta property="og:url" content="https://portfolio-6nh.pages.dev/this-site/" />
+  <meta property="og:image" content="https://portfolio-6nh.pages.dev/assets/og-placeholder.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="This Site — Victor Lane" />
+  <meta name="twitter:description" content="High-level architecture and workflow notes for this portfolio site." />
+  <meta name="twitter:image" content="https://portfolio-6nh.pages.dev/assets/og-placeholder.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="/" aria-label="Victor Lane home">
+        <img src="/assets/logo.svg" alt="Victor Lane" width="220" height="40" decoding="async" />
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <ul class="nav-links" id="site-nav" aria-label="Primary">
+        <li><a href="/">Home</a></li>
+        <li><a href="/work/">Work</a></li>
+        <li><a href="/about/">About</a></li>
+        <li><a href="/contact/">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="section">
+      <div class="container reveal">
+        <div class="section-head">
+          <p class="kicker">Technical Notes</p>
+          <h1 class="balance no-widow">How this site is put together</h1>
+          <p>A high-level view of the architecture, publishing workflows, and security boundaries used for this portfolio.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container reveal">
+        <h2>Architecture at a glance</h2>
+        <p>The platform is split into a static front-end and edge services: Pages (Astro) + Workers API + D1 + R2 + Turnstile + Cloudflare Access.</p>
+        <figure>
+          <img src="/assets/this-site-architecture.svg" alt="Diagram showing Astro Pages, Workers API, D1, R2, Turnstile, and Cloudflare Access with public and admin paths." loading="lazy" decoding="async" />
+          <figcaption class="meta-line">High-level diagram only (no account identifiers, secret names, or policy IDs).</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container reveal">
+        <h2>RBAC and audit logging</h2>
+        <ul>
+          <li><strong>Admin</strong>: full access to content, media, and moderation operations.</li>
+          <li><strong>Reviewer</strong>: review-focused access for approval, verification, and quality gates.</li>
+          <li>Role checks are enforced in the API boundary, and every mutation is recorded in an audit log for traceability.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container reveal">
+        <h2>Content workflow</h2>
+        <p>Content records move through a simple draft/published lifecycle:</p>
+        <ul>
+          <li><strong>Draft</strong>: editable state for preparing updates.</li>
+          <li><strong>Published</strong>: publicly visible state surfaced on the site.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container reveal">
+        <h2>Media workflow</h2>
+        <ul>
+          <li>Media files currently resolve to public URLs for straightforward delivery and caching.</li>
+          <li>A private-media path is intentionally stubbed for future rollout when stricter asset controls are needed.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container reveal">
+        <h2>Security notes</h2>
+        <p>Specific operational details are intentionally omitted here: account IDs, tokens, bucket names, exact policy IDs, and secret names/values.</p>
+        <p>Keeping those details out of public documentation reduces enumeration risk and avoids leaking deployment metadata that could assist targeted abuse.</p>
+      </div>
+    </section>
+
+    <section class="section section-tight">
+      <div class="container reveal">
+        <h2>What I’d do next</h2>
+        <ul>
+          <li>Promote the private-media stub into signed URL delivery with explicit expiry and key rotation.</li>
+          <li>Add richer, role-scoped dashboards for audit log exploration and operational anomaly review.</li>
+          <li>Expand CI checks with policy tests and migration validation for database + storage workflows.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" data-site-footer>
+    <div class="container">
+      <div class="signature-rule footer-signature-rule" aria-hidden="true"></div>
+      <div class="footer-grid">
+        <div class="footer-block"><h4>This Site</h4><p>Public architecture notes and workflow overview.</p></div>
+        <div class="footer-block"><h4>Browse</h4><p><a href="/work/">Work</a><br><a href="/about/">About</a></p></div>
+        <div class="footer-block"><h4>Contact</h4><p><a href="/contact/">Get in touch</a></p></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
