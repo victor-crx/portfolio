@@ -491,6 +491,13 @@
   const credentialsPassedNode = document.querySelector('[data-credentials-passed]');
   const credentialsInProgressNode = document.querySelector('[data-credentials-in-progress]');
   const credentialsPlannedNode = document.querySelector('[data-credentials-planned]');
+  const credentialsPassedSampleNode = document.querySelector('[data-credentials-passed-samples]');
+  const credentialsInProgressSampleNode = document.querySelector('[data-credentials-in-progress-samples]');
+  const credentialsPlannedSampleNode = document.querySelector('[data-credentials-planned-samples]');
+  const credentialsEmptyNode = document.querySelector('[data-credentials-empty]');
+  const credentialsViewAllNode = document.querySelector('[data-credentials-view-all]');
+  const credentialsListNode = document.querySelector('[data-credentials-list]');
+  const credentialsListItemsNode = document.querySelector('[data-credentials-list-items]');
   const credentialsNextNode = document.querySelector('[data-credentials-next]');
 
   const FILTER_DEFINITIONS = {
@@ -1067,16 +1074,47 @@
     return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
 
+  function renderCredentialSamples(node, items) {
+    if (!node) return;
+    const names = (Array.isArray(items) ? items : [])
+      .map((item) => (item && typeof item.title === 'string' ? item.title.trim() : ''))
+      .filter(Boolean)
+      .slice(0, 2);
+    node.textContent = names.length ? `· ${names.join(' · ')}` : '';
+  }
+
   function renderCredentialsStrip(items) {
     if (!credentialsStrip || !credentialsPassedNode || !credentialsInProgressNode || !credentialsPlannedNode) return;
-    const published = Array.isArray(items) ? items : [];
-    const passed = published.filter((item) => item && item.progress_state === 'passed').length;
-    const inProgressItems = published.filter((item) => item && item.progress_state === 'in_progress');
-    const plannedItems = published.filter((item) => item && item.progress_state === 'planned');
+    const published = (Array.isArray(items) ? items : []).filter((item) => item && item.status === 'published');
+    const passedItems = published.filter((item) => item.progress_state === 'passed');
+    const inProgressItems = published.filter((item) => item.progress_state === 'in_progress');
+    const plannedItems = published.filter((item) => item.progress_state === 'planned');
 
-    credentialsPassedNode.textContent = String(passed);
+    credentialsPassedNode.textContent = String(passedItems.length);
     credentialsInProgressNode.textContent = String(inProgressItems.length);
     credentialsPlannedNode.textContent = String(plannedItems.length);
+
+    renderCredentialSamples(credentialsPassedSampleNode, passedItems);
+    renderCredentialSamples(credentialsInProgressSampleNode, inProgressItems);
+    renderCredentialSamples(credentialsPlannedSampleNode, plannedItems);
+
+    const hasAnyPublished = published.length > 0;
+    if (credentialsEmptyNode) credentialsEmptyNode.hidden = hasAnyPublished;
+    if (credentialsViewAllNode) credentialsViewAllNode.hidden = !hasAnyPublished;
+
+    if (credentialsListNode && credentialsListItemsNode) {
+      credentialsListNode.hidden = !hasAnyPublished;
+      credentialsListItemsNode.innerHTML = hasAnyPublished
+        ? published
+          .map((item) => {
+            const state = item.progress_state ? String(item.progress_state).replace('_', ' ') : 'planned';
+            const when = formatCredentialDate(item.target_date);
+            const meta = when ? ` · ${state} · ${when}` : ` · ${state}`;
+            return `<li>${item.title}${meta}</li>`;
+          })
+          .join('')
+        : '';
+    }
 
     const upcoming = [...inProgressItems, ...plannedItems]
       .filter((item) => item && typeof item.target_date === 'string' && item.target_date.trim())
@@ -1102,7 +1140,7 @@
       const payload = await fetchJsonWithTimeout('/api/certifications');
       renderCredentialsStrip(Array.isArray(payload.data) ? payload.data : []);
     } catch {
-      credentialsStrip.hidden = true;
+      renderCredentialsStrip([]);
     }
   }
 
