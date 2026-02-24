@@ -1,77 +1,106 @@
-<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Admin Content Studio</title><link rel='stylesheet' href='/admin.css'></head>
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Admin Content Editor</title><link rel='stylesheet' href='/admin.css'></head>
 <body class='admin' data-admin-page='content'>
 <div class='admin-wrap admin-grid'>
   <aside class='admin-panel admin-nav' data-admin-nav>
     <h2>Admin</h2>
     <a href='/admin/'>Dashboard</a>
-    <a href='/admin/projects/'>Projects</a>
+    <a href='/admin/content/' class='admin-nav-primary'>Content Editor</a>
     <a href='/admin/media/'>Media</a>
+    <a href='/admin/projects/'>Projects</a>
     <a href='/admin/services/'>Services</a>
     <a href='/admin/certifications/'>Certifications</a>
     <a href='/admin/labs/'>Labs</a>
-    <a href='/admin/content/'>Content Studio</a>
-    <a href='/admin/site/'>Advanced / Raw JSON</a>
+    <a href='/admin/site/'>Advanced (Raw JSON)</a>
     <a href='/admin/inquiries/'>Inquiries</a>
     <a href='/admin/audit/'>Audit</a>
     <button data-admin-logout>Logout</button>
   </aside>
   <main class='admin-panel'>
-    <h1>Content Studio</h1>
-    <p class='admin-state admin-state-left'>Edit homepage and contact content without writing raw JSON.</p>
+    <h1>Content Editor</h1>
+    <p class='admin-state admin-state-left'>Use field editors for live content updates. Keep JSON edits in Advanced only when needed.</p>
     <p class='admin-state admin-state-left' data-content-loading>Loading content…</p>
 
     <section class='admin-content-card' data-content-root hidden>
-      <h2>Home Hero</h2>
+      <div class='admin-content-head'><h2>Home Hero</h2><a href='/' target='_blank' rel='noreferrer noopener' class='admin-preview-link'>Preview page ↗</a></div>
+      <p class='admin-help-text'>Controls homepage title/subtitle, CTA buttons, and hero background media.</p>
+      <p class='admin-form-error' data-content-error='hero' hidden></p>
       <form class='admin-form' data-content-form='hero'>
-        <label>Headline<input name='headline' required></label>
-        <label>Subhead<textarea name='subhead' rows='3'></textarea></label>
-        <label>Background image
-          <select name='backgroundMediaId' data-content-media-select>
-            <option value=''>None</option>
-          </select>
-        </label>
-        <label>Primary CTA label<input name='primaryText'></label>
-        <label>Primary CTA URL<input name='primaryHref'></label>
-        <label>Secondary CTA label<input name='secondaryText'></label>
-        <label>Secondary CTA URL<input name='secondaryHref'></label>
-        <label>Alignment
-          <select name='alignment'>
-            <option value='left'>Left</option>
-            <option value='center'>Center</option>
-            <option value='right'>Right</option>
-          </select>
-        </label>
+        <fieldset class='admin-fieldset'><legend>Copy</legend>
+          <label>Title<input name='headline' required></label>
+          <label>Subtitle<textarea name='subhead' rows='3'></textarea></label>
+        </fieldset>
+        <fieldset class='admin-fieldset'><legend>Buttons</legend>
+          <label>Primary CTA label<input name='primaryText'></label>
+          <label>Primary CTA URL<input name='primaryHref'></label>
+          <label>Secondary CTA label<input name='secondaryText'></label>
+          <label>Secondary CTA URL<input name='secondaryHref'></label>
+        </fieldset>
+        <fieldset class='admin-fieldset'><legend>Layout + media</legend>
+          <label>Hero image
+            <select name='backgroundMediaId' data-content-media-select>
+              <option value=''>None</option>
+            </select>
+          </label>
+          <p class='admin-help-text'>Choose from Media Library uploads.</p>
+          <label>Alignment
+            <select name='alignment'>
+              <option value='left'>Left</option>
+              <option value='center'>Center</option>
+              <option value='right'>Right</option>
+            </select>
+          </label>
+        </fieldset>
         <button type='submit'>Save hero</button>
       </form>
     </section>
 
     <section class='admin-content-card' data-content-root hidden>
-      <h2>Home Press / Testimonials</h2>
+      <div class='admin-content-head'><h2>Home Press</h2><a href='/' target='_blank' rel='noreferrer noopener' class='admin-preview-link'>Preview page ↗</a></div>
+      <p class='admin-help-text'>Manage press quotes/testimonials shown on the homepage.</p>
+      <p class='admin-form-error' data-content-error='press' hidden></p>
       <div data-press-list></div>
-      <button type='button' data-press-add>Add testimonial</button>
-      <button type='button' data-content-save='press'>Save testimonials</button>
+      <div class='admin-inline-form'>
+        <button type='button' data-press-add>Add item</button>
+        <button type='button' data-content-save='press'>Save press list</button>
+      </div>
     </section>
 
     <section class='admin-content-card' data-content-root hidden>
-      <h2>Global Footer</h2>
+      <div class='admin-content-head'><h2>Global Footer</h2><a href='/' target='_blank' rel='noreferrer noopener' class='admin-preview-link'>Preview page ↗</a></div>
+      <p class='admin-help-text'>Edit footer intro and links used across all pages.</p>
+      <p class='admin-form-error' data-content-error='footer' hidden></p>
       <form class='admin-form' data-content-form='footer'>
-        <label>Short blurb<textarea name='blurb' rows='3'></textarea></label>
+        <label>Left column blurb<textarea name='blurb' rows='3'></textarea></label>
         <div data-footer-links></div>
-        <button type='button' data-footer-add-link>Add link</button>
-        <button type='submit'>Save footer</button>
+        <div class='admin-inline-form'>
+          <button type='button' data-footer-add-link>Add link</button>
+          <button type='submit'>Save footer</button>
+        </div>
       </form>
     </section>
 
     <section class='admin-content-card' data-content-root hidden>
-      <h2>Contact Intro</h2>
+      <div class='admin-content-head'><h2>Contact Intro</h2><a href='/contact/' target='_blank' rel='noreferrer noopener' class='admin-preview-link'>Preview page ↗</a></div>
+      <p class='admin-help-text'>Short intro copy at the top of Contact page.</p>
+      <p class='admin-form-error' data-content-error='contact' hidden></p>
       <form class='admin-form' data-content-form='contact'>
         <label>Title<input name='title'></label>
-        <label>Paragraph<textarea name='paragraph' rows='4'></textarea></label>
-        <label><input type='checkbox' name='showServices'> Show services mini-panel</label>
-        <label>Services title<input name='servicesTitle'></label>
-        <div data-contact-services-list></div>
-        <button type='button' data-contact-add-service>Add service</button>
+        <label>Subtitle<textarea name='paragraph' rows='4'></textarea></label>
         <button type='submit'>Save contact intro</button>
+      </form>
+    </section>
+
+    <section class='admin-content-card' data-content-root data-content-root-thissite hidden>
+      <div class='admin-content-head'><h2>This Site Intro + Proof Cards</h2><a href='/this-site/' target='_blank' rel='noreferrer noopener' class='admin-preview-link'>Preview page ↗</a></div>
+      <p class='admin-help-text'>Shown only when a this-site/intro content block exists.</p>
+      <p class='admin-form-error' data-content-error='thissite' hidden></p>
+      <form class='admin-form' data-content-form='thissite'>
+        <label>Intro paragraph<textarea name='intro' rows='4'></textarea></label>
+        <div data-thissite-proofs></div>
+        <div class='admin-inline-form'>
+          <button type='button' data-thissite-add-proof>Add proof card</button>
+          <button type='submit'>Save this-site content</button>
+        </div>
       </form>
     </section>
   </main>
