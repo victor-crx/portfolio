@@ -179,6 +179,11 @@ const getClientIp = (c: { req: { header: (name: string) => string | undefined } 
 const getStatus = (input: unknown, fallback: 'draft' | 'published' = 'draft') =>
   input === 'published' ? 'published' : fallback;
 
+const getProgressState = (input: unknown, fallback: 'passed' | 'in_progress' | 'planned' = 'planned') => {
+  if (input === 'passed' || input === 'in_progress' || input === 'planned') return input;
+  return fallback;
+};
+
 const authHeaderToken = (headerValue: string | null) => {
   if (!headerValue || !headerValue.startsWith('Bearer ')) return '';
   return headerValue.slice('Bearer '.length).trim();
@@ -388,7 +393,7 @@ app.get('/api/services', async (c) => {
 
 app.get('/api/certifications', async (c) => {
   const rows = await c.env.DB
-    .prepare("SELECT * FROM certifications WHERE status = 'published' ORDER BY COALESCE(featured_order, 999999) ASC, COALESCE(published_at, issued_on) DESC, id ASC")
+    .prepare("SELECT * FROM certifications WHERE status = 'published' ORDER BY COALESCE(featured_order, 999999) ASC, COALESCE(target_date, '9999-12-31T23:59:59.999Z') ASC, COALESCE(published_at, issued_on) DESC, id ASC")
     .all();
   return c.json({ data: rows.results ?? [] });
 });
@@ -720,7 +725,9 @@ app.put('/api/admin/services/:id', async (c) => {
 });
 
 app.get('/api/admin/certifications', async (c) => {
-  const rows = await c.env.DB.prepare('SELECT * FROM certifications ORDER BY created_at DESC, id DESC').all();
+  const rows = await c.env.DB
+    .prepare("SELECT * FROM certifications ORDER BY COALESCE(featured_order, 999999) ASC, COALESCE(target_date, '9999-12-31T23:59:59.999Z') ASC, created_at DESC, id DESC")
+    .all();
   return c.json({ data: rows.results ?? [] });
 });
 
@@ -735,8 +742,8 @@ app.post('/api/admin/certifications', async (c) => {
     .prepare(
       `INSERT INTO certifications (
         title, issuer, credential_id, credential_url, issued_on, expires_on,
-        status, published_at, featured_order, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        status, published_at, featured_order, progress_state, target_date, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       String(body.title || ''),
@@ -748,6 +755,8 @@ app.post('/api/admin/certifications', async (c) => {
       status,
       publishedAt,
       Number.isFinite(Number(body.featured_order)) ? Number(body.featured_order) : null,
+      getProgressState(body.progress_state),
+      toIsoOrEmpty(typeof body.target_date === 'string' ? body.target_date : null) || null,
       nowIso(),
       nowIso()
     )
@@ -770,7 +779,7 @@ app.put('/api/admin/certifications/:id', async (c) => {
     .prepare(
       `UPDATE certifications SET
         title = ?, issuer = ?, credential_id = ?, credential_url = ?, issued_on = ?, expires_on = ?,
-        status = ?, published_at = COALESCE(?, published_at), featured_order = ?, updated_at = ?
+        status = ?, published_at = COALESCE(?, published_at), featured_order = ?, progress_state = ?, target_date = ?, updated_at = ?
       WHERE id = ?`
     )
     .bind(
@@ -783,6 +792,8 @@ app.put('/api/admin/certifications/:id', async (c) => {
       status,
       maybePublishedAt,
       Number.isFinite(Number(body.featured_order)) ? Number(body.featured_order) : null,
+      getProgressState(body.progress_state),
+      toIsoOrEmpty(typeof body.target_date === 'string' ? body.target_date : null) || null,
       nowIso(),
       id
     )

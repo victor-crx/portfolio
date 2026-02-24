@@ -487,6 +487,11 @@
   const typeSelect = document.querySelector('[data-filter-type]');
   const searchInput = document.querySelector('[data-filter-search]');
   const countNode = document.querySelector('[data-results-count]');
+  const credentialsStrip = document.querySelector('[data-credentials-strip]');
+  const credentialsPassedNode = document.querySelector('[data-credentials-passed]');
+  const credentialsInProgressNode = document.querySelector('[data-credentials-in-progress]');
+  const credentialsPlannedNode = document.querySelector('[data-credentials-planned]');
+  const credentialsNextNode = document.querySelector('[data-credentials-next]');
 
   const FILTER_DEFINITIONS = {
     collection: [
@@ -1055,6 +1060,52 @@
     return detailResponses.map(mapApiProjectToLegacyShape);
   }
 
+  function formatCredentialDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  }
+
+  function renderCredentialsStrip(items) {
+    if (!credentialsStrip || !credentialsPassedNode || !credentialsInProgressNode || !credentialsPlannedNode) return;
+    const published = Array.isArray(items) ? items : [];
+    const passed = published.filter((item) => item && item.progress_state === 'passed').length;
+    const inProgressItems = published.filter((item) => item && item.progress_state === 'in_progress');
+    const plannedItems = published.filter((item) => item && item.progress_state === 'planned');
+
+    credentialsPassedNode.textContent = String(passed);
+    credentialsInProgressNode.textContent = String(inProgressItems.length);
+    credentialsPlannedNode.textContent = String(plannedItems.length);
+
+    const upcoming = [...inProgressItems, ...plannedItems]
+      .filter((item) => item && typeof item.target_date === 'string' && item.target_date.trim())
+      .sort((a, b) => String(a.target_date).localeCompare(String(b.target_date)))[0];
+
+    if (credentialsNextNode) {
+      if (upcoming && upcoming.title) {
+        const when = formatCredentialDate(upcoming.target_date);
+        credentialsNextNode.hidden = false;
+        credentialsNextNode.textContent = when ? `Next: ${upcoming.title} by ${when}` : `Next: ${upcoming.title}`;
+      } else {
+        credentialsNextNode.hidden = true;
+        credentialsNextNode.textContent = '';
+      }
+    }
+
+    credentialsStrip.hidden = false;
+  }
+
+  async function loadCredentialsSummary() {
+    if (!credentialsStrip) return;
+    try {
+      const payload = await fetchJsonWithTimeout('/api/certifications');
+      renderCredentialsStrip(Array.isArray(payload.data) ? payload.data : []);
+    } catch {
+      credentialsStrip.hidden = true;
+    }
+  }
+
   async function loadProjectsWithFallback() {
     try {
       return await loadProjectsFromApi();
@@ -1064,6 +1115,8 @@
       return fallbackData.projects || [];
     }
   }
+
+  void loadCredentialsSummary();
 
   loadProjectsWithFallback()
     .then((loadedProjects) => {
