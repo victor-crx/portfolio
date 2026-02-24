@@ -630,6 +630,202 @@
     loadMedia();
   }
 
+
+  const wireContentStudio = async () => {
+    const loading = document.querySelector('[data-content-loading]');
+    const roots = Array.from(document.querySelectorAll('[data-content-root]'));
+    const heroForm = document.querySelector("[data-content-form='hero']");
+    const pressList = document.querySelector('[data-press-list]');
+    const pressSave = document.querySelector("[data-content-save='press']");
+    const pressAdd = document.querySelector('[data-press-add]');
+    const footerForm = document.querySelector("[data-content-form='footer']");
+    const footerLinks = document.querySelector('[data-footer-links]');
+    const footerAdd = document.querySelector('[data-footer-add-link]');
+    const contactForm = document.querySelector("[data-content-form='contact']");
+    const contactServices = document.querySelector('[data-contact-services-list]');
+    const contactAdd = document.querySelector('[data-contact-add-service]');
+    const mediaSelect = document.querySelector('[data-content-media-select]');
+    const listPath = '/api/admin/site-blocks';
+    const state = { hero: null, press: null, footer: null, contact: null };
+
+    const getBlock = (list, pageName, key, fallbackTitle) => list.find((item) => item.page === pageName && item.block_key === key) || {
+      page: pageName, block_key: key, title: fallbackTitle, body: '', status: 'published', featured_order: ''
+    };
+
+    const parseData = (item, fallback = {}) => {
+      try { return JSON.parse(item?.data_json || '{}'); } catch { return fallback; }
+    };
+
+    const renderPressRows = (items = []) => {
+      if (!pressList) return;
+      if (!items.length) {
+        pressList.innerHTML = '<p class="admin-state admin-state-left">No testimonials yet.</p>';
+        return;
+      }
+      pressList.innerHTML = items.map((item, idx) => `<div class='admin-row-card' data-press-row='${idx}'>
+        <label>Quote<textarea data-press-quote rows='2'>${escapeHtml(item.quote || '')}</textarea></label>
+        <label>Author<input data-press-author value='${escapeHtml(item.source || item.author || '')}'></label>
+        <label>Optional link<input data-press-link value='${escapeHtml(item.href || item.link || '')}'></label>
+        <div class='admin-inline-form'><button type='button' data-press-up='${idx}'>↑</button><button type='button' data-press-down='${idx}'>↓</button><button type='button' data-press-remove='${idx}'>Remove</button></div>
+      </div>`).join('');
+    };
+
+    const readPressRows = () => Array.from(pressList?.querySelectorAll('[data-press-row]') || []).map((row) => ({
+      quote: row.querySelector('[data-press-quote]')?.value?.trim() || '',
+      source: row.querySelector('[data-press-author]')?.value?.trim() || '',
+      href: row.querySelector('[data-press-link]')?.value?.trim() || ''
+    })).filter((item) => item.quote || item.source || item.href);
+
+    const renderLinkRows = (items = []) => {
+      if (!footerLinks) return;
+      footerLinks.innerHTML = items.map((item, idx) => `<div class='admin-inline-form' data-footer-row='${idx}'><input data-footer-label placeholder='Label' value='${escapeHtml(item.label || '')}'><input data-footer-href placeholder='URL' value='${escapeHtml(item.href || '')}'><button type='button' data-footer-remove='${idx}'>Remove</button></div>`).join('') || '<p class="admin-state admin-state-left">No links yet.</p>';
+    };
+
+    const readLinkRows = () => Array.from(footerLinks?.querySelectorAll('[data-footer-row]') || []).map((row) => ({
+      label: row.querySelector('[data-footer-label]')?.value?.trim() || '',
+      href: row.querySelector('[data-footer-href]')?.value?.trim() || ''
+    })).filter((item) => item.label && item.href);
+
+    const renderServicesRows = (items = []) => {
+      if (!contactServices) return;
+      contactServices.innerHTML = items.map((item, idx) => `<div class='admin-inline-form' data-service-row='${idx}'><input data-service-item value='${escapeHtml(item || '')}'><button type='button' data-service-remove='${idx}'>Remove</button></div>`).join('') || '<p class="admin-state admin-state-left">No services listed.</p>';
+    };
+
+    const readServicesRows = () => Array.from(contactServices?.querySelectorAll('[data-service-row]') || []).map((row) => row.querySelector('[data-service-item]')?.value?.trim() || '').filter(Boolean);
+
+    const saveBlock = async (item, data) => {
+      const payload = {
+        page: item.page,
+        block_key: item.block_key,
+        title: item.title || '',
+        body: item.body || '',
+        status: item.status || 'published',
+        featured_order: item.featured_order || '',
+        data
+      };
+      if (item.id) return fetchJSON(`${listPath}/${encodeURIComponent(item.id)}`, { method: 'PUT', body: JSON.stringify(payload) });
+      return fetchJSON(listPath, { method: 'POST', body: JSON.stringify(payload) });
+    };
+
+    const mediaPayload = await fetchJSON('/api/admin/media', { headers: {} }).catch(() => ({ data: [] }));
+    const mediaItems = Array.isArray(mediaPayload.data) ? mediaPayload.data : [];
+    if (mediaSelect) {
+      mediaSelect.innerHTML = `<option value=''>None</option>${mediaItems.map((item) => `<option value='${item.id}'>${escapeHtml(item.key || item.public_url || `media-${item.id}`)}</option>`).join('')}`;
+    }
+
+    const payload = await fetchJSON(listPath);
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+    state.hero = getBlock(rows, 'home', 'hero', 'Homepage Hero');
+    state.press = getBlock(rows, 'home', 'press', 'Home Press & Testimonials');
+    state.footer = getBlock(rows, 'global', 'footer', 'Global Footer');
+    state.contact = getBlock(rows, 'contact', 'intro', 'Contact Intro');
+
+    const heroData = parseData(state.hero, {});
+    heroForm.querySelector("[name='headline']").value = heroData.title || '';
+    heroForm.querySelector("[name='subhead']").value = heroData.subtitle || '';
+    heroForm.querySelector("[name='backgroundMediaId']").value = heroData.heroMediaId ? String(heroData.heroMediaId) : '';
+    heroForm.querySelector("[name='primaryText']").value = heroData.primaryCtaText || 'View my work';
+    heroForm.querySelector("[name='primaryHref']").value = heroData.primaryCtaHref || '/work/';
+    heroForm.querySelector("[name='secondaryText']").value = heroData.secondaryCtaText || 'Contact me';
+    heroForm.querySelector("[name='secondaryHref']").value = heroData.secondaryCtaHref || '/contact/';
+    heroForm.querySelector("[name='alignment']").value = heroData.alignment || 'center';
+
+    renderPressRows(parseData(state.press, { items: [] }).items || []);
+    const footerData = parseData(state.footer, {});
+    footerForm.querySelector("[name='blurb']").value = footerData.leftText || '';
+    renderLinkRows(Array.isArray(footerData.links) ? footerData.links : []);
+
+    const contactData = parseData(state.contact, {});
+    contactForm.querySelector("[name='title']").value = contactData.title || '';
+    contactForm.querySelector("[name='paragraph']").value = contactData.subtitle || '';
+    contactForm.querySelector("[name='showServices']").checked = Boolean(contactData.showServicesPanel);
+    contactForm.querySelector("[name='servicesTitle']").value = contactData.servicesTitle || 'Services';
+    renderServicesRows(Array.isArray(contactData.services) ? contactData.services : []);
+
+    loading?.setAttribute('hidden', 'hidden');
+    roots.forEach((node) => node.removeAttribute('hidden'));
+
+    heroForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const f = new FormData(heroForm);
+      const mediaId = String(f.get('backgroundMediaId') || '');
+      const media = mediaItems.find((item) => String(item.id) === mediaId);
+      await saveBlock(state.hero, {
+        title: String(f.get('headline') || ''),
+        subtitle: String(f.get('subhead') || ''),
+        primaryCtaText: String(f.get('primaryText') || 'View my work'),
+        primaryCtaHref: String(f.get('primaryHref') || '/work/'),
+        secondaryCtaText: String(f.get('secondaryText') || 'Contact me'),
+        secondaryCtaHref: String(f.get('secondaryHref') || '/contact/'),
+        alignment: String(f.get('alignment') || 'center'),
+        heroMediaId: mediaId || null,
+        heroMediaUrl: media?.public_url || null
+      });
+      toast('Hero saved', 'success');
+    });
+
+    pressAdd?.addEventListener('click', () => {
+      const items = readPressRows();
+      items.push({ quote: '', source: '', href: '' });
+      renderPressRows(items);
+    });
+    pressList?.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      let items = readPressRows();
+      if (target.dataset.pressRemove != null) items.splice(Number(target.dataset.pressRemove), 1);
+      if (target.dataset.pressUp != null) {
+        const i = Number(target.dataset.pressUp); if (i > 0) [items[i - 1], items[i]] = [items[i], items[i - 1]];
+      }
+      if (target.dataset.pressDown != null) {
+        const i = Number(target.dataset.pressDown); if (i < items.length - 1) [items[i + 1], items[i]] = [items[i], items[i + 1]];
+      }
+      renderPressRows(items);
+    });
+    pressSave?.addEventListener('click', async () => {
+      await saveBlock(state.press, { items: readPressRows() });
+      toast('Testimonials saved', 'success');
+    });
+
+    footerAdd?.addEventListener('click', () => {
+      const items = readLinkRows(); items.push({ label: '', href: '' }); renderLinkRows(items);
+    });
+    footerLinks?.addEventListener('click', (event) => {
+      const target = event.target; if (!(target instanceof HTMLElement)) return;
+      if (target.dataset.footerRemove == null) return;
+      const items = readLinkRows(); items.splice(Number(target.dataset.footerRemove), 1); renderLinkRows(items);
+    });
+    footerForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const f = new FormData(footerForm);
+      await saveBlock(state.footer, { leftText: String(f.get('blurb') || ''), links: readLinkRows(), smallPrint: '© Victor Lane' });
+      toast('Footer saved', 'success');
+    });
+
+    contactAdd?.addEventListener('click', () => {
+      const items = readServicesRows(); items.push(''); renderServicesRows(items);
+    });
+    contactServices?.addEventListener('click', (event) => {
+      const target = event.target; if (!(target instanceof HTMLElement)) return;
+      if (target.dataset.serviceRemove == null) return;
+      const items = readServicesRows(); items.splice(Number(target.dataset.serviceRemove), 1); renderServicesRows(items);
+    });
+    contactForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const f = new FormData(contactForm);
+      await saveBlock(state.contact, {
+        title: String(f.get('title') || ''),
+        subtitle: String(f.get('paragraph') || ''),
+        showServicesPanel: f.get('showServices') === 'on',
+        servicesTitle: String(f.get('servicesTitle') || 'Services'),
+        services: readServicesRows()
+      });
+      toast('Contact intro saved', 'success');
+    });
+  };
+
+  if (page === 'content') wireContentStudio().catch((error) => toast(error.message || 'Failed to load content studio', 'error'));
+
   if (page === 'audit') {
     const tbody = document.querySelector('#admin-table-body');
     renderTableState(tbody, 'loading', 5);

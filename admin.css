@@ -39,3 +39,7 @@ body.admin {
 .admin-pagination { margin-top: 12px; display: flex; align-items: center; gap: 10px; }
 .admin-message { white-space: pre-wrap; background: #0d0d13; border: 1px solid #2a2a33; border-radius: 6px; padding: 10px; }
 .admin-note { border: 1px solid #2a2a33; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+
+.admin-state-left { text-align: left; padding: 6px 0; }
+.admin-content-card { border-top: 1px solid #2a2a33; margin-top: 16px; padding-top: 16px; }
+.admin-row-card { border: 1px solid #2a2a33; border-radius: 8px; padding: 10px; margin-bottom: 10px; display: grid; gap: 8px; }
