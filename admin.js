@@ -654,7 +654,7 @@
           if (!tableBody.querySelector('tr')) renderTableState(tableBody, 'empty', 8);
           toast('Deleted', 'success');
         } catch (error) {
-          toast(error.message || 'Delete failed', 'error');
+          toast(error.message || 'Delete failed. Media was not removed from storage, so no database records were changed.', 'error');
         }
       }));
       } catch (error) {
