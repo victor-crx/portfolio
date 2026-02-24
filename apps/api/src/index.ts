@@ -41,6 +41,95 @@ const parseJsonField = <T>(value: string | null | undefined, fallback: T): T => 
 
 const nowIso = () => new Date().toISOString();
 
+type SiteBlockSeed = {
+  page: string;
+  block_key: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+};
+
+const SITE_BLOCK_DEFAULTS: SiteBlockSeed[] = [
+  {
+    page: 'home',
+    block_key: 'hero',
+    title: 'Homepage Hero',
+    body: 'Primary hero content for the home page.',
+    data: {
+      title: 'Systems clarity, collaborative execution, elegant outcomes.',
+      subtitle: 'Brochure-inspired portfolio design with a technical backbone, curated across Systems, Collaboration & Live, Delivery, and Creative lanes.',
+      ctaText: 'Contact Me',
+      ctaHref: '/contact/',
+      heroMediaId: null,
+      heroMediaUrl: null
+    }
+  },
+  {
+    page: 'home',
+    block_key: 'press',
+    title: 'Home Press & Testimonials',
+    body: 'Quotes and social proof for the home page.',
+    data: {
+      items: [{ label: 'Testimonial', quote: 'Operationally calm, technically rigorous, and always clear in communication.', source: 'Program Sponsor', href: '' }]
+    }
+  },
+  {
+    page: 'global',
+    block_key: 'footer',
+    title: 'Global Footer',
+    body: 'Footer text and global links.',
+    data: {
+      leftText: 'Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.',
+      links: [
+        { label: 'Home', href: '/' },
+        { label: 'Work', href: '/work/' },
+        { label: 'About', href: '/about/' },
+        { label: 'Contact', href: '/contact/' }
+      ],
+      smallPrint: '© Victor Lane'
+    }
+  },
+  {
+    page: 'contact',
+    block_key: 'intro',
+    title: 'Contact Intro',
+    body: 'Contact page heading and introductory text.',
+    data: {
+      title: 'Contact',
+      subtitle: 'Use the form below to send an inquiry.'
+    }
+  }
+];
+
+const ensureDefaultSiteBlocks = async (db: D1Database) => {
+  const timestamp = nowIso();
+  for (const block of SITE_BLOCK_DEFAULTS) {
+    await db
+      .prepare(
+        `INSERT INTO site_blocks (
+          page, block_key, title, body, data_json, status, published_at, featured_order, created_at, updated_at
+        )
+        SELECT ?, ?, ?, ?, ?, 'published', ?, NULL, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM site_blocks WHERE page = ? AND block_key = ?
+        )`
+      )
+      .bind(
+        block.page,
+        block.block_key,
+        block.title,
+        block.body,
+        JSON.stringify(block.data),
+        timestamp,
+        timestamp,
+        timestamp,
+        block.page,
+        block.block_key
+      )
+      .run();
+  }
+};
+
 const MAX_MEDIA_SIZE = 10 * 1024 * 1024;
 const ALLOWED_MEDIA_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
 
@@ -302,8 +391,17 @@ app.get('/api/labs', async (c) => {
 });
 
 app.get('/api/site-blocks', async (c) => {
+  await ensureDefaultSiteBlocks(c.env.DB);
+  const page = c.req.query('page');
+  const where = ["status = 'published'"];
+  const params: string[] = [];
+  if (page) {
+    where.push('page = ?');
+    params.push(page);
+  }
   const rows = await c.env.DB
-    .prepare("SELECT * FROM site_blocks WHERE status = 'published' ORDER BY page ASC, COALESCE(featured_order, 999999) ASC, block_key ASC, id ASC")
+    .prepare(`SELECT * FROM site_blocks WHERE ${where.join(' AND ')} ORDER BY page ASC, COALESCE(featured_order, 999999) ASC, block_key ASC, id ASC`)
+    .bind(...params)
     .all();
   return c.json({ data: rows.results ?? [] });
 });
@@ -746,6 +844,7 @@ app.put('/api/admin/labs/:id', async (c) => {
 });
 
 app.get('/api/admin/site-blocks', async (c) => {
+  await ensureDefaultSiteBlocks(c.env.DB);
   const rows = await c.env.DB
     .prepare('SELECT * FROM site_blocks ORDER BY page ASC, block_key ASC, updated_at DESC')
     .all();

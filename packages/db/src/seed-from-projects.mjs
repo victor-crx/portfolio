@@ -122,8 +122,56 @@ VALUES (
   }
 }
 
-sql.push("INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json) VALUES ('home', 'hero', 'Homepage Hero', 'Replace with CMS-managed hero copy.', '{}');");
-sql.push("INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json) VALUES ('about', 'intro', 'About Intro', 'Replace with CMS-managed about copy.', '{}');");
+sql.push(`INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json, status, published_at, created_at, updated_at) VALUES (
+  'home',
+  'hero',
+  'Homepage Hero',
+  'Primary hero content for the home page.',
+  '${JSON.stringify({
+    title: 'Systems clarity, collaborative execution, elegant outcomes.',
+    subtitle: 'Brochure-inspired portfolio design with a technical backbone, curated across Systems, Collaboration & Live, Delivery, and Creative lanes.',
+    ctaText: 'Contact Me',
+    ctaHref: '/contact/',
+    heroMediaId: null,
+    heroMediaUrl: null
+  }).replaceAll("'", "''")}',
+  'published', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+);`);
+sql.push(`INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json, status, published_at, created_at, updated_at) VALUES (
+  'home',
+  'press',
+  'Home Press & Testimonials',
+  'Quotes and social proof for the home page.',
+  '${JSON.stringify({
+    items: [{ label: 'Testimonial', quote: 'Operationally calm, technically rigorous, and always clear in communication.', source: 'Program Sponsor', href: '' }]
+  }).replaceAll("'", "''")}',
+  'published', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+);`);
+sql.push(`INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json, status, published_at, created_at, updated_at) VALUES (
+  'global',
+  'footer',
+  'Global Footer',
+  'Footer text and global links.',
+  '${JSON.stringify({
+    leftText: 'Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.',
+    links: [
+      { label: 'Home', href: '/' },
+      { label: 'Work', href: '/work/' },
+      { label: 'About', href: '/about/' },
+      { label: 'Contact', href: '/contact/' }
+    ],
+    smallPrint: '© Victor Lane'
+  }).replaceAll("'", "''")}',
+  'published', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+);`);
+sql.push(`INSERT OR IGNORE INTO site_blocks (page, block_key, title, body, data_json, status, published_at, created_at, updated_at) VALUES (
+  'contact',
+  'intro',
+  'Contact Intro',
+  'Contact page heading and introductory text.',
+  '${JSON.stringify({ title: 'Contact', subtitle: 'Use the form below to send an inquiry.' }).replaceAll("'", "''")}',
+  'published', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+);`);
 sql.push("INSERT OR IGNORE INTO services (slug, title, summary, body, sort_order) VALUES ('fractional-ops', 'Fractional Operations Leadership', 'Operational leadership and delivery orchestration.', 'Placeholder service description.', 1);");
 sql.push("INSERT OR IGNORE INTO certifications (title, issuer, issued_on) VALUES ('Example Certification', 'Example Issuer', '2024-01');");
 

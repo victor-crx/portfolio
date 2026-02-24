@@ -13,9 +13,9 @@ const siteKey = import.meta.env.TURNSTILE_SITE_KEY ?? "";
   <link rel="canonical" href="https://portfolio-6nh.pages.dev/contact/" />
   <link rel="stylesheet" href="/styles.css" />
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-</head><body>
+</head><body data-page="contact">
   <a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="container nav-wrap"><a class="brand" href="/" aria-label="Victor Lane home"><img src="/assets/logo.svg" alt="Victor Lane" width="220" height="40" decoding="async" /></a><button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button><ul class="nav-links" id="site-nav" aria-label="Primary"><li><a href="/">Home</a></li><li><a href="/work/">Work</a></li><li><a href="/about/">About</a></li><li><a href="/contact/">Contact</a></li></ul></div></header>
-  <main id="main-content" class="section"><div class="container"><div class="section-head reveal"><p class="kicker">Connect</p><h2 class="balance no-widow">Contact</h2><p>Use the form below to send an inquiry.</p></div>
+  <main id="main-content" class="section"><div class="container"><div class="section-head reveal" data-site-contact-intro><p class="kicker">Connect</p><h2 class="balance no-widow" data-site-contact-title>Contact</h2><p data-site-contact-subtitle>Use the form below to send an inquiry.</p></div>
   <form class="admin-form" data-contact-form>
     <select name="inquiry_type"><option value="general">General</option><option value="project">Project</option><option value="speaking">Speaking</option></select>
     <input name="name" placeholder="Your name" required>
@@ -27,7 +27,7 @@ const siteKey = import.meta.env.TURNSTILE_SITE_KEY ?? "";
     <p data-contact-status aria-live="polite"></p>
   </form>
   </div></main>
-  <footer class="footer"><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div></div></footer><script src="/app.js" defer></script>
+  <footer class="footer" data-site-footer><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div><div class="footer-grid"><div class="footer-block"><h4>Victor Lane</h4><p data-site-footer-left>Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.</p></div><div class="footer-block"><h4>Links</h4><p data-site-footer-links><a href="/">Home</a><br><a href="/work/">Work</a><br><a href="/about/">About</a><br><a href="/contact/">Contact</a></p></div><div class="footer-block"><h4>Small Print</h4><p data-site-footer-small>© Victor Lane</p></div></div></div></footer><script src="/app.js" defer></script>
   <script is:inline define:vars={{ siteKey }}>
     if (!siteKey) {
       console.warn('TURNSTILE_SITE_KEY is empty; contact form submissions will fail Turnstile verification.');

@@ -15,7 +15,44 @@
     <button data-admin-logout>Logout</button>
   </aside>
   <main class='admin-panel'>
-    <h1>Site Blocks</h1><form id='admin-form' class='admin-form'><input name='id' placeholder='id (blank=create)'><input name='page' placeholder='page'><input name='block_key' placeholder='block_key'><input name='title' placeholder='title'><textarea name='body' placeholder='body'></textarea><textarea name='data' placeholder='{"k":"v"}'></textarea><input name='status' placeholder='draft/published'><input name='featured_order' placeholder='featured_order'><button type='submit'>Save</button></form><table class='admin-table'><thead><tr><th>ID</th><th>Page</th><th>Block</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
+    <h1>Site Blocks</h1>
+    <p class='admin-state'>Manage core public-site text blocks.</p>
+    <form id='admin-form' class='admin-form'>
+      <input name='id' placeholder='id (blank=create)' readonly>
+      <label>Page
+        <select name='page' data-site-page>
+          <option value='home'>home</option>
+          <option value='global'>global</option>
+          <option value='contact'>contact</option>
+        </select>
+      </label>
+      <label>Block key
+        <select name='block_key' data-site-block-key>
+          <option value='hero'>hero</option>
+          <option value='press'>press</option>
+          <option value='footer'>footer</option>
+          <option value='intro'>intro</option>
+        </select>
+      </label>
+      <input name='title' placeholder='title'>
+      <textarea name='body' placeholder='body'></textarea>
+      <label>JSON data
+        <textarea name='data' data-site-json rows='12' placeholder='{"k":"v"}'></textarea>
+      </label>
+      <p class='admin-state' data-site-json-error hidden></p>
+      <label>Status
+        <select name='status'>
+          <option value='draft'>draft</option>
+          <option value='published'>published</option>
+        </select>
+      </label>
+      <input name='featured_order' placeholder='featured_order'>
+      <div>
+        <button type='submit'>Save</button>
+        <a href='/' target='_blank' rel='noreferrer' data-site-view-link>View page</a>
+      </div>
+    </form>
+    <table class='admin-table'><thead><tr><th>ID</th><th>Page</th><th>Block</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody id='admin-table-body'></tbody></table>
   </main>
 </div>
 <script src='/admin.js' defer></script>
