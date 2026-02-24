@@ -1856,3 +1856,37 @@ body.is-modal-open {
   .contact-layout { grid-template-columns: 1fr; }
 }
 
+
+.this-site-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.this-site-proof-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background:
+    linear-gradient(180deg, rgba(245, 245, 245, 0.05), rgba(245, 245, 245, 0.02)),
+    rgba(11, 11, 13, 0.68);
+  box-shadow: var(--shadow-soft);
+}
+
+.this-site-proof-card h2 {
+  margin-top: 0;
+  margin-bottom: 0.55rem;
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+}
+
+.this-site-proof-card p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+@media (max-width: 860px) {
+  .this-site-proof-grid {
+    grid-template-columns: 1fr;
+  }
+}
