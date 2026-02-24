@@ -16,17 +16,36 @@ const siteKey = import.meta.env.TURNSTILE_SITE_KEY ?? "";
 </head><body data-page="contact">
   <a class="skip-link" href="#main-content">Skip to content</a><header class="site-header"><div class="container nav-wrap"><a class="brand" href="/" aria-label="Victor Lane home"><img src="/assets/logo.svg" alt="Victor Lane" width="220" height="40" decoding="async" /></a><button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">Menu</button><ul class="nav-links" id="site-nav" aria-label="Primary"><li><a href="/">Home</a></li><li><a href="/work/">Work</a></li><li><a href="/about/">About</a></li><li><a href="/contact/">Contact</a></li></ul></div></header>
   <main id="main-content" class="section"><div class="container"><div class="section-head reveal" data-site-contact-intro><p class="kicker">Connect</p><h2 class="balance no-widow" data-site-contact-title>Contact</h2><p data-site-contact-subtitle>Use the form below to send an inquiry.</p></div>
-  <aside class="contact-services" data-site-contact-services hidden></aside>
-  <form class="contact-form" data-contact-form>
-    <label>Inquiry Type<select name="inquiry_type"><option value="general">General</option><option value="project">Project</option><option value="speaking">Speaking</option></select></label>
-    <label>Your name<input name="name" placeholder="Your name" required></label>
-    <label>Your email<input name="email" type="email" placeholder="Your email" required></label>
-    <label>Subject<input name="subject" placeholder="Subject" required></label>
-    <label>Your message<textarea name="message" placeholder="Your message" required></textarea></label>
-    <div class="cf-turnstile" data-sitekey={siteKey}></div>
-    <button class="btn btn-primary" type="submit" data-contact-submit>Send inquiry</button>
-    <p data-contact-status class="contact-status" aria-live="polite"></p>
-  </form>
+    <div class="contact-layout">
+      <form class="contact-form" data-contact-form novalidate>
+        <div class="contact-field">
+          <label for="inquiry_type">Inquiry type</label>
+          <select id="inquiry_type" name="inquiry_type">
+            <option value="general">General</option>
+            <option value="project">Project</option>
+            <option value="speaking">Speaking</option>
+            <option value="services">Services</option>
+          </select>
+        </div>
+        <div class="contact-field"><label for="name">Your name</label><input id="name" name="name" placeholder="Your name" autocomplete="name" required /></div>
+        <div class="contact-field"><label for="email">Your email</label><input id="email" name="email" type="email" placeholder="you@company.com" autocomplete="email" required /></div>
+        <div class="contact-field"><label for="subject">Subject</label><input id="subject" name="subject" placeholder="Subject" required /></div>
+        <div class="contact-field"><label for="message">Your message</label><textarea id="message" name="message" placeholder="Your message" required></textarea></div>
+        <input type="hidden" name="service_id" value="" data-service-id />
+        <input type="hidden" name="service_title" value="" data-service-title />
+        <input type="hidden" name="service_slug" value="" data-service-slug />
+        <div class="contact-form-footer">
+          <div class="cf-turnstile" data-sitekey={siteKey}></div>
+          <button class="btn btn-primary" type="submit" data-contact-submit>Send inquiry</button>
+        </div>
+        <p data-contact-status class="contact-status" aria-live="polite"></p>
+      </form>
+      <aside class="contact-services" data-contact-services-panel aria-live="polite" hidden>
+        <h3>Services (optional)</h3>
+        <p>Selecting a service will switch inquiry type to <strong>Services</strong>.</p>
+        <ul class="contact-services-list" data-contact-services-list></ul>
+      </aside>
+    </div>
   </div></main>
   <footer class="footer" data-site-footer><div class="container"><div class="signature-rule footer-signature-rule" aria-hidden="true"></div><div class="footer-grid"><div class="footer-block"><h4>Victor Lane</h4><p data-site-footer-left>Portfolio focused on systems, collaboration, delivery, and creative execution with sanitized, reusable examples.</p></div><div class="footer-block"><h4>Links</h4><p data-site-footer-links><a href="/">Home</a><br><a href="/work/">Work</a><br><a href="/about/">About</a><br><a href="/contact/">Contact</a></p></div><div class="footer-block"><h4>Small Print</h4><p data-site-footer-small>© Victor Lane</p></div></div></div></footer><script src="/app.js" defer></script>
   <script is:inline define:vars={{ siteKey }}>
@@ -37,23 +56,105 @@ const siteKey = import.meta.env.TURNSTILE_SITE_KEY ?? "";
     const form = document.querySelector('[data-contact-form]');
     const status = document.querySelector('[data-contact-status]');
     const submit = document.querySelector('[data-contact-submit]');
+    const inquiryTypeSelect = document.querySelector('#inquiry_type');
+    const servicesPanel = document.querySelector('[data-contact-services-panel]');
+    const servicesList = document.querySelector('[data-contact-services-list]');
+    const serviceIdField = document.querySelector('[data-service-id]');
+    const serviceTitleField = document.querySelector('[data-service-title]');
+    const serviceSlugField = document.querySelector('[data-service-slug]');
+
+    const setStatus = (text, kind = '') => {
+      if (!status) return;
+      status.textContent = text;
+      status.classList.remove('is-success', 'is-error');
+      if (kind) status.classList.add(kind);
+    };
+
+    const setSelectedService = (service) => {
+      if (!serviceIdField || !serviceTitleField || !serviceSlugField) return;
+      serviceIdField.value = service?.id ? String(service.id) : '';
+      serviceTitleField.value = service?.title ? String(service.title) : '';
+      serviceSlugField.value = service?.slug ? String(service.slug) : '';
+
+      servicesList?.querySelectorAll('[data-service-option]').forEach((button) => {
+        const isActive = button.getAttribute('data-service-id') === String(service?.id || '');
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    };
+
+    const buildServicePanel = async () => {
+      if (!servicesPanel || !servicesList) return;
+      try {
+        const response = await fetch('/api/services');
+        const payload = await response.json().catch(() => ({}));
+        const items = (Array.isArray(payload.data) ? payload.data : []).slice(0, 6);
+
+        if (items.length < 3) {
+          servicesPanel.hidden = true;
+          return;
+        }
+
+        servicesPanel.hidden = false;
+        servicesList.innerHTML = items.map((item) => {
+          const summary = String(item.summary || '').trim();
+          return `<li><button type="button" class="contact-service-option" data-service-option data-service-id="${String(item.id)}" aria-pressed="false"><span class="service-title">${String(item.title || 'Service')}</span><span class="service-summary">${summary}</span></button></li>`;
+        }).join('');
+
+        servicesList.querySelectorAll('[data-service-option]').forEach((button, index) => {
+          button.addEventListener('click', () => {
+            const service = items[index];
+            setSelectedService(service);
+            if (inquiryTypeSelect) inquiryTypeSelect.value = 'services';
+            setStatus(`Selected service: ${String(service.title || 'Service')}.`, '');
+          });
+        });
+      } catch {
+        servicesPanel.hidden = true;
+      }
+    };
+
+    const runClientValidation = () => {
+      if (!form) return true;
+      const requiredFields = Array.from(form.querySelectorAll('input[required], textarea[required], select[required]'));
+      let hasError = false;
+      requiredFields.forEach((field) => {
+        const valid = field.checkValidity();
+        field.toggleAttribute('aria-invalid', !valid);
+        if (!valid && !hasError) {
+          hasError = true;
+          field.focus();
+        }
+      });
+      if (hasError) setStatus('Please complete all required fields.', 'is-error');
+      return !hasError;
+    };
 
     if (form && status) {
+      buildServicePanel();
+
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        status.textContent = '';
-        status.classList.remove('is-success', 'is-error');
+        if (!runClientValidation()) return;
+
+        setStatus('');
         submit?.setAttribute('disabled', 'disabled');
         if (submit) submit.textContent = 'Sending…';
 
         const formData = new FormData(form);
+        const selectedService = {
+          service_id: String(formData.get('service_id') || '').trim(),
+          service_title: String(formData.get('service_title') || '').trim(),
+          service_slug: String(formData.get('service_slug') || '').trim()
+        };
+
         const payload = {
           inquiry_type: String(formData.get('inquiry_type') || 'general'),
           name: String(formData.get('name') || '').trim(),
           email: String(formData.get('email') || '').trim(),
           subject: String(formData.get('subject') || '').trim(),
           message: String(formData.get('message') || '').trim(),
-          turnstileToken: String(formData.get('cf-turnstile-response') || '').trim()
+          turnstileToken: String(formData.get('cf-turnstile-response') || '').trim(),
+          selected_service: selectedService.service_id ? selectedService : null
         };
 
         try {
@@ -65,17 +166,15 @@ const siteKey = import.meta.env.TURNSTILE_SITE_KEY ?? "";
 
           if (!response.ok) {
             const result = await response.json().catch(() => ({}));
-            status.textContent = String(result.error || 'Could not send inquiry. Please try again.');
-            status.classList.add('is-error');
+            setStatus(String(result.error || 'Could not send inquiry. Please try again.'), 'is-error');
             return;
           }
 
           form.reset();
-          status.textContent = 'Inquiry sent. Thank you.';
-          status.classList.add('is-success');
+          setSelectedService(null);
+          setStatus('Inquiry sent. Thank you.', 'is-success');
         } catch {
-          status.textContent = 'Network error. Please try again.';
-          status.classList.add('is-error');
+          setStatus('Network error. Please try again.', 'is-error');
         } finally {
           submit?.removeAttribute('disabled');
           if (submit) submit.textContent = 'Send inquiry';

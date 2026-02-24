@@ -1420,18 +1420,8 @@
       const data = parseData(contactIntro, {});
       const title = document.querySelector('[data-site-contact-title]');
       const subtitle = document.querySelector('[data-site-contact-subtitle]');
-      const services = document.querySelector('[data-site-contact-services]');
       if (title && data.title) title.textContent = String(data.title);
       if (subtitle && data.subtitle) subtitle.textContent = String(data.subtitle);
-      if (services) {
-        const items = Array.isArray(data.services) ? data.services : [];
-        if (data.showServicesPanel && items.length) {
-          services.hidden = false;
-          services.innerHTML = `<h3>${String(data.servicesTitle || 'Services')}</h3><ul>${items.map((item) => `<li>${String(item)}</li>`).join('')}</ul>`;
-        } else {
-          services.hidden = true;
-        }
-      }
     }
   }
 

@@ -485,6 +485,21 @@
       detail.querySelector('[data-field="message"]').textContent = row.message || '';
       detail.querySelector('[data-field="created_at"]').textContent = row.created_at || '';
       detail.querySelector('[data-field="metadata_json"]').textContent = row.metadata_json || row.payload_json || '{}';
+      const serviceField = detail.querySelector('[data-field="selected_service"]');
+      if (serviceField) {
+        let serviceText = 'None';
+        try {
+          const meta = JSON.parse(row.metadata_json || row.payload_json || '{}');
+          if (meta.service_id || meta.service_title || meta.service_slug) {
+            const bits = [];
+            if (meta.service_title) bits.push(String(meta.service_title));
+            if (meta.service_slug) bits.push(`slug: ${String(meta.service_slug)}`);
+            if (meta.service_id) bits.push(`id: ${String(meta.service_id)}`);
+            serviceText = bits.join(' • ');
+          }
+        } catch {}
+        serviceField.textContent = serviceText;
+      }
       detail.querySelector('[data-assign-email]').value = row.assigned_to_email || '';
       detail.querySelectorAll('[data-next-status]').forEach((btn) => { btn.dataset.inquiryId = String(id); });
       detail.querySelector('[data-save-assign]').dataset.inquiryId = String(id);
